@@ -107,12 +107,12 @@ export default function DJPanelScreen() {
       )}
 
       {/* Error state */}
-      {!loading && error && (
+      {!loading && fetchError && (
         <View style={styles.centerState}>
           <Ionicons name="cloud-offline-outline" size={48} color={colors.textMuted} />
           <Text style={styles.stateTitle}>Error al cargar</Text>
           <Text style={styles.stateText}>No pudimos cargar la sesión</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={() => { fetchSession(sessionId); fetchQueue(sessionId); }}>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => { setFetchError(false); fetchSession(sessionId); fetchQueue(sessionId); }}>
             <Ionicons name="refresh" size={18} color={colors.textOnPrimary} />
             <Text style={styles.retryText}>Reintentar</Text>
           </TouchableOpacity>
@@ -125,7 +125,7 @@ export default function DJPanelScreen() {
       )}
 
       {/* No session state */}
-      {!loading && !error && !currentSession && (
+      {!loading && !fetchError && !currentSession && (
         <View style={styles.centerState}>
           <Ionicons name="disc-outline" size={48} color={colors.textMuted} />
           <Text style={styles.stateTitle}>Sin sesión activa</Text>
