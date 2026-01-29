@@ -11,6 +11,7 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +19,8 @@ import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { useSessionStore } from '../../src/stores/sessionStore';
-import { searchTracks, isSpotifyConfigured, type SpotifyTrack } from '../../src/lib/spotify';
+import { searchTracks as spotifySearch, isSpotifyConfigured } from '../../src/lib/spotify';
+import { searchTracks as deezerSearch, type MusicTrack } from '../../src/lib/deezer';
 
 interface SearchResult {
   id: string;
@@ -27,6 +29,7 @@ interface SearchResult {
   album: string;
   duration: string;
   alreadyRequested: boolean;
+  albumArt?: string | null;
 }
 
 const MOCK_RESULTS: SearchResult[] = [
@@ -47,7 +50,11 @@ const ResultItem = ({ song, onRequest }: { song: SearchResult; onRequest: () => 
     activeOpacity={0.7}
   >
     <View style={styles.albumCover}>
-      <Ionicons name="disc" size={20} color={colors.textMuted} />
+      {song.albumArt ? (
+        <Image source={{ uri: song.albumArt }} style={styles.albumImage} />
+      ) : (
+        <Ionicons name="disc" size={20} color={colors.textMuted} />
+      )}
     </View>
     <View style={styles.resultInfo}>
       <Text style={styles.resultTitle} numberOfLines={1}>{song.title}</Text>
@@ -80,8 +87,8 @@ export default function RequestSongScreen() {
     setSearching(true);
 
     if (isSpotifyConfigured()) {
-      // Real Spotify search
-      const tracks = await searchTracks(text, 10);
+      // Spotify search (when available)
+      const tracks = await spotifySearch(text, 10);
       setResults(tracks.map(t => ({
         id: t.id,
         title: t.name,
@@ -92,13 +99,25 @@ export default function RequestSongScreen() {
         albumArt: t.albumArt,
       })));
     } else {
-      // Fallback to mock
-      setTimeout(() => {
+      // Deezer search (default — free, no API key)
+      const tracks = await deezerSearch(text, 10);
+      if (tracks.length > 0) {
+        setResults(tracks.map(t => ({
+          id: t.id,
+          title: t.name,
+          artist: t.artist,
+          album: t.album,
+          duration: t.duration,
+          alreadyRequested: false,
+          albumArt: t.albumArt,
+        })));
+      } else {
+        // Mock fallback if Deezer fails
         setResults(MOCK_RESULTS.filter(s =>
           s.title.toLowerCase().includes(text.toLowerCase()) ||
           s.artist.toLowerCase().includes(text.toLowerCase())
         ));
-      }, 300);
+      }
     }
     setSearching(false);
   };
@@ -229,6 +248,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  albumImage: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.md,
   },
   resultInfo: {
     flex: 1,
