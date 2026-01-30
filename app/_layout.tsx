@@ -7,7 +7,7 @@ import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { colors } from '../src/theme/colors';
 import { useAuthStore } from '../src/stores/authStore';
 
@@ -55,6 +55,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
+      <View style={styles.appShell}>
       <AuthGate>
         <Stack
           screenOptions={{
@@ -77,11 +78,26 @@ export default function RootLayout() {
           />
         </Stack>
       </AuthGate>
+      </View>
     </QueryClientProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  appShell: {
+    flex: 1,
+    backgroundColor: colors.background,
+    ...(Platform.OS === 'web' ? {
+      maxWidth: 420,
+      width: '100%',
+      alignSelf: 'center' as const,
+      // Shadow for desktop to frame the app
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+    } : {}),
+  },
   loading: {
     flex: 1,
     justifyContent: 'center',

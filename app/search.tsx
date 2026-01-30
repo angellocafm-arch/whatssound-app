@@ -1,10 +1,10 @@
 /**
  * WhatsSound — Búsqueda Global
- * Buscar chats, grupos, DJs, sesiones, canciones
+ * Search profiles and sessions from Supabase
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../src/theme/colors';
@@ -12,33 +12,68 @@ import { typography } from '../src/theme/typography';
 import { spacing, borderRadius } from '../src/theme/spacing';
 import { Avatar } from '../src/components/ui/Avatar';
 
-const RECENT = ['Viernes Latino', 'DJ Marcos', 'Gasolina', 'Laura'];
+if (Platform.OS === 'web') {
+  const s = document.createElement('style');
+  s.textContent = '@font-face{font-family:"Ionicons";src:url("/Ionicons.ttf") format("truetype")}';
+  if (!document.querySelector('style[data-ionicons-fix]')) { s.setAttribute('data-ionicons-fix','1'); document.head.appendChild(s); }
+}
 
-const RESULTS = {
-  chats: [
-    { id: 'c1', name: 'Laura', type: 'person', subtitle: 'Último: Nos vemos a las 9!' },
-    { id: 'c2', name: 'Viernes Latino 🔥', type: 'group', subtitle: '47 miembros · Sesión activa' },
-  ],
-  djs: [
-    { id: 'd1', name: 'DJ Marcos', subtitle: 'Urban/Latin · 234 sesiones · ⭐ 4.8', verified: true },
-  ],
-  sessions: [
-    { id: 's1', name: 'Techno Night', subtitle: 'MNML_Dave · 128 escuchando', live: true },
-  ],
-  songs: [
-    { id: 'so1', name: 'Gasolina', subtitle: 'Daddy Yankee · Barrio Fino' },
-    { id: 'so2', name: 'Gas Pedal', subtitle: 'Sage the Gemini' },
-  ],
-};
+const SUPABASE_URL = 'https://xyehncvvvprrqwnsefcr.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+
+function getHeaders() {
+  let token = '';
+  try { token = JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').access_token || ''; } catch {}
+  return { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}`, 'Content-Type': 'application/json' };
+}
+
+interface ProfileResult { id: string; username: string; display_name: string; avatar_url?: string; }
+interface SessionResult { id: string; name: string; dj_name?: string; status?: string; }
 
 export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [profiles, setProfiles] = useState<ProfileResult[]>([]);
+  const [sessions, setSessions] = useState<SessionResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const debounceRef = React.useRef<any>(null);
+
+  const doSearch = useCallback((q: string) => {
+    if (!q.trim()) {
+      setProfiles([]);
+      setSessions([]);
+      setSearched(false);
+      return;
+    }
+    setLoading(true);
+    setSearched(true);
+    const h = getHeaders();
+    const encoded = encodeURIComponent(`%${q}%`);
+
+    Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/profiles?or=(username.ilike.${encoded},display_name.ilike.${encoded})&select=id,username,display_name,avatar_url&limit=10`, { headers: h }).then(r => r.json()).catch(() => []),
+      fetch(`${SUPABASE_URL}/rest/v1/sessions?name=ilike.${encoded}&select=id,name,dj_name,status&limit=10`, { headers: h }).then(r => r.json()).catch(() => []),
+    ])
+      .then(([p, s]) => {
+        setProfiles(Array.isArray(p) ? p : []);
+        setSessions(Array.isArray(s) ? s : []);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleChange = (text: string) => {
+    setQuery(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(text), 400);
+  };
+
   const hasQuery = query.trim().length > 0;
+  const noResults = searched && !loading && profiles.length === 0 && sessions.length === 0;
 
   return (
     <View style={styles.container}>
-      {/* Search header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
@@ -47,14 +82,14 @@ export default function SearchScreen() {
           <Ionicons name="search" size={18} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar chats, DJs, canciones..."
+            placeholder="Buscar personas, sesiones..."
             placeholderTextColor={colors.textMuted}
             value={query}
-            onChangeText={setQuery}
+            onChangeText={handleChange}
             autoFocus
           />
           {hasQuery && (
-            <TouchableOpacity onPress={() => setQuery('')}>
+            <TouchableOpacity onPress={() => { setQuery(''); setProfiles([]); setSessions([]); setSearched(false); }}>
               <Ionicons name="close-circle" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           )}
@@ -62,79 +97,53 @@ export default function SearchScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {!hasQuery ? (
-          /* Recent searches */
+        {!hasQuery && (
+          <View style={styles.emptyState}>
+            <Ionicons name="search-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyText}>Busca personas o sesiones</Text>
+          </View>
+        )}
+
+        {loading && (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="small" color={colors.primary} />
+          </View>
+        )}
+
+        {noResults && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>Sin resultados para "{query}"</Text>
+          </View>
+        )}
+
+        {profiles.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>BÚSQUEDAS RECIENTES</Text>
-            {RECENT.map(term => (
-              <TouchableOpacity key={term} style={styles.recentItem} onPress={() => setQuery(term)}>
-                <Ionicons name="time-outline" size={18} color={colors.textMuted} />
-                <Text style={styles.recentText}>{term}</Text>
-                <TouchableOpacity>
-                  <Ionicons name="close" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
+            <Text style={styles.sectionTitle}>PERSONAS</Text>
+            {profiles.map(p => (
+              <TouchableOpacity key={p.id} style={styles.resultItem} onPress={() => router.push(`/profile/${p.id}`)}>
+                <Avatar name={p.display_name || p.username} size="md" />
+                <View style={styles.resultInfo}>
+                  <Text style={styles.resultName}>{p.display_name || p.username}</Text>
+                  <Text style={styles.resultSub}>@{p.username}</Text>
+                </View>
               </TouchableOpacity>
             ))}
-            <Text style={styles.sectionTitle}>SUGERENCIAS</Text>
-            <View style={styles.suggestionsRow}>
-              {['Reggaeton', 'En vivo', 'DJs cerca', 'Nuevos grupos'].map(s => (
-                <TouchableOpacity key={s} style={styles.suggestionChip}>
-                  <Text style={styles.suggestionText}>{s}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </>
-        ) : (
-          /* Search results */
+        )}
+
+        {sessions.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>CHATS</Text>
-            {RESULTS.chats.map(r => (
-              <TouchableOpacity key={r.id} style={styles.resultItem}>
-                <Avatar name={r.name} size="md" />
-                <View style={styles.resultInfo}>
-                  <Text style={styles.resultName}>{r.name}</Text>
-                  <Text style={styles.resultSub}>{r.subtitle}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-
-            <Text style={styles.sectionTitle}>DJS</Text>
-            {RESULTS.djs.map(r => (
-              <TouchableOpacity key={r.id} style={styles.resultItem}>
-                <Avatar name={r.name} size="md" />
-                <View style={styles.resultInfo}>
-                  <View style={styles.nameRow}>
-                    <Text style={styles.resultName}>{r.name}</Text>
-                    {r.verified && <Ionicons name="checkmark-circle" size={14} color={colors.primary} />}
-                  </View>
-                  <Text style={styles.resultSub}>{r.subtitle}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-
-            <Text style={styles.sectionTitle}>SESIONES EN VIVO</Text>
-            {RESULTS.sessions.map(r => (
-              <TouchableOpacity key={r.id} style={styles.resultItem}>
-                <View style={styles.liveIcon}>
-                  <Ionicons name="radio" size={20} color={colors.error} />
+            <Text style={styles.sectionTitle}>SESIONES</Text>
+            {sessions.map(s => (
+              <TouchableOpacity key={s.id} style={styles.resultItem} onPress={() => router.push(`/session/${s.id}`)}>
+                <View style={styles.sessionIcon}>
+                  <Ionicons name="headset" size={20} color={s.status === 'active' ? colors.primary : colors.textMuted} />
                 </View>
                 <View style={styles.resultInfo}>
-                  <Text style={styles.resultName}>{r.name}</Text>
-                  <Text style={styles.resultSub}>{r.subtitle}</Text>
+                  <Text style={styles.resultName}>{s.name}</Text>
+                  <Text style={styles.resultSub}>{s.dj_name || 'DJ'}{s.status === 'active' ? ' · En vivo' : ''}</Text>
                 </View>
-              </TouchableOpacity>
-            ))}
-
-            <Text style={styles.sectionTitle}>CANCIONES</Text>
-            {RESULTS.songs.map(r => (
-              <TouchableOpacity key={r.id} style={styles.resultItem}>
-                <View style={styles.songIcon}>
-                  <Ionicons name="musical-note" size={18} color={colors.primary} />
-                </View>
-                <View style={styles.resultInfo}>
-                  <Text style={styles.resultName}>{r.name}</Text>
-                  <Text style={styles.resultSub}>{r.subtitle}</Text>
-                </View>
+                {s.status === 'active' && <View style={styles.liveBadge}><Text style={styles.liveText}>LIVE</Text></View>}
               </TouchableOpacity>
             ))}
           </>
@@ -158,22 +167,17 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, ...typography.body, color: colors.textPrimary },
   content: { paddingHorizontal: spacing.base, paddingBottom: spacing['3xl'] },
   sectionTitle: { ...typography.captionBold, color: colors.textMuted, letterSpacing: 0.5, marginTop: spacing.lg, marginBottom: spacing.sm },
-  recentItem: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  recentText: { ...typography.body, color: colors.textPrimary, flex: 1 },
-  suggestionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  suggestionChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.full },
-  suggestionText: { ...typography.bodySmall, color: colors.textPrimary },
   resultItem: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     paddingVertical: spacing.md, borderBottomWidth: 0.5, borderBottomColor: colors.divider,
   },
   resultInfo: { flex: 1, gap: 2 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   resultName: { ...typography.bodyBold, color: colors.textPrimary },
   resultSub: { ...typography.caption, color: colors.textMuted },
-  liveIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.error + '20', alignItems: 'center', justifyContent: 'center' },
-  songIcon: { width: 40, height: 40, borderRadius: borderRadius.md, backgroundColor: colors.primary + '20', alignItems: 'center', justifyContent: 'center' },
+  sessionIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  liveBadge: { backgroundColor: colors.error, borderRadius: borderRadius.sm, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  liveText: { ...typography.captionBold, color: '#fff', fontSize: 10 },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 100, gap: spacing.md },
+  emptyText: { ...typography.body, color: colors.textMuted },
+  loadingWrap: { paddingTop: spacing.xl, alignItems: 'center' },
 });

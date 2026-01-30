@@ -45,7 +45,47 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // First try to restore session from localStorage (no network call)
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.access_token && parsed.user && parsed.expires_at > Date.now() / 1000) {
+              // Restore session immediately from localStorage
+              set({ user: parsed.user, session: parsed as any, initialized: true });
+              // Set Supabase session in background (non-blocking, with timeout)
+              const setSessionWithTimeout = Promise.race([
+                supabase.auth.setSession({
+                  access_token: parsed.access_token,
+                  refresh_token: parsed.refresh_token,
+                }),
+                new Promise(r => setTimeout(r, 3000)),
+              ]);
+              setSessionWithTimeout.then((result: any) => {
+                if (result?.data?.session) {
+                  set({ user: result.data.session.user, session: result.data.session });
+                }
+              }).catch(() => {});
+              get().fetchProfile().catch(() => {});
+              // Listen for auth changes
+              supabase.auth.onAuthStateChange(async (event, session) => {
+                set({ user: session?.user ?? null, session });
+                if (session?.user) await get().fetchProfile();
+                else set({ profile: null });
+              });
+              return;
+            }
+          }
+        } catch {}
+      }
+
+      // Fallback: standard getSession with timeout
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Auth init timeout')), 5000)
+      );
+      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
       if (session) {
         set({ user: session.user, session });
         await get().fetchProfile();

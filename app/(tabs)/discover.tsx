@@ -22,21 +22,10 @@ interface DjProfile {
   username: string;
   genres: string[];
   is_dj: boolean;
-  isReal: boolean;
   isFollowing?: boolean;
 }
 
-const MOCK_UPCOMING = [
-  { id: '1', name: 'Sábado Urbano', dj: 'DJ Marcos', date: 'Sáb 1 Feb · 22:00', genre: 'Urban', attendees: 34 },
-  { id: '2', name: 'Sunday Chill', dj: 'LoFi Girl', date: 'Dom 2 Feb · 17:00', genre: 'Lo-Fi', attendees: 18 },
-  { id: '3', name: 'Latin Fever', dj: 'Carlos', date: 'Vie 7 Feb · 21:00', genre: 'Reggaeton', attendees: 56 },
-];
-
-const MOCK_DJS: DjProfile[] = [
-  { id: 'm1', display_name: 'DJ Marcos', username: 'marcos', genres: ['Urban', 'Latin'], is_dj: true, isReal: false },
-  { id: 'm2', display_name: 'MNML_Dave', username: 'mnml', genres: ['Techno'], is_dj: true, isReal: false },
-  { id: 'm3', display_name: 'LoFi Girl', username: 'lofi', genres: ['Lo-Fi', 'Chill'], is_dj: true, isReal: false },
-];
+// All data from Supabase
 
 const GENRES = ['🎵 Reggaeton', '🎸 Rock', '🎹 Techno', '🎷 Jazz', '🎤 Pop', '📻 Lo-Fi', '🪗 Latina', '🥁 Hip Hop'];
 
@@ -52,7 +41,7 @@ export default function DiscoverScreen() {
     setLoadingDjs(true);
     setFetchError(false);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session: _s } } = await supabase.auth.getSession(); const user = _s?.user;
       const { data, error } = await supabase
         .from('profiles')
         .select('id, display_name, username, genres, is_dj')
@@ -71,7 +60,7 @@ export default function DiscoverScreen() {
             .eq('follower_id', user.id);
           followedIds = (follows || []).map((f: any) => f.dj_id);
         }
-        setDjs(data.map((d: any) => ({ ...d, isReal: true, isFollowing: followedIds.includes(d.id) })));
+        setDjs(data.map((d: any) => ({ ...d, isFollowing: followedIds.includes(d.id) })));
       }
     } catch {
       setFetchError(true);
@@ -81,7 +70,7 @@ export default function DiscoverScreen() {
   };
 
   const toggleFollow = async (djId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session: _s } } = await supabase.auth.getSession(); const user = _s?.user;
     if (!user) return;
     const dj = djs.find(d => d.id === djId);
     if (!dj) return;
@@ -103,8 +92,7 @@ export default function DiscoverScreen() {
     setRefreshing(false);
   };
 
-  // Combine real + mock, real first
-  const allDjs = [...djs, ...MOCK_DJS.filter(m => !djs.find(d => d.display_name === m.display_name))];
+  const allDjs = djs;
   const filtered = search
     ? allDjs.filter(d => d.display_name.toLowerCase().includes(search.toLowerCase()) ||
         d.genres?.some(g => g.toLowerCase().includes(search.toLowerCase())))
@@ -179,14 +167,13 @@ export default function DiscoverScreen() {
           <View style={styles.djInfo}>
             <View style={styles.djNameRow}>
               <Text style={styles.djName}>{dj.display_name}</Text>
-              {dj.isReal && <Badge text="REAL" variant="success" />}
             </View>
             <Text style={styles.djGenre}>{dj.genres?.join(' · ') || 'Varios'}</Text>
             <Text style={styles.djUsername}>@{dj.username}</Text>
           </View>
           <TouchableOpacity
             style={[styles.followBtn, dj.isFollowing && styles.followingBtn]}
-            onPress={() => dj.isReal && toggleFollow(dj.id)}
+            onPress={() => toggleFollow(dj.id)}
           >
             <Text style={[styles.followText, dj.isFollowing && styles.followingText]}>
               {dj.isFollowing ? 'Siguiendo' : 'Seguir'}
@@ -200,23 +187,9 @@ export default function DiscoverScreen() {
         <Text style={styles.sectionTitle}>📅 Próximas sesiones</Text>
       </View>
 
-      {MOCK_UPCOMING.map(event => (
-        <Card key={event.id} style={styles.eventCard}>
-          <View style={styles.eventInfo}>
-            <Text style={styles.eventName}>{event.name}</Text>
-            <Text style={styles.eventDj}>{event.dj} · {event.genre}</Text>
-            <View style={styles.eventMeta}>
-              <Ionicons name="calendar" size={12} color={colors.textMuted} />
-              <Text style={styles.eventDate}>{event.date}</Text>
-              <Ionicons name="people" size={12} color={colors.textMuted} style={{ marginLeft: spacing.sm }} />
-              <Text style={styles.eventDate}>{event.attendees} interesados</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.notifyBtn}>
-            <Ionicons name="notifications-outline" size={18} color={colors.primary} />
-          </TouchableOpacity>
-        </Card>
-      ))}
+      <View style={{ alignItems: 'center', paddingVertical: spacing['2xl'] }}>
+        <Text style={{ ...typography.body, color: colors.textMuted }}>No hay sesiones programadas</Text>
+      </View>
     </ScrollView>
   );
 }

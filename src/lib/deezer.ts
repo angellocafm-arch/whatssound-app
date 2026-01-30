@@ -9,7 +9,30 @@
 const DEEZER_API = 'https://api.deezer.com';
 
 // CORS proxy for web (Deezer blocks browser requests)
-const CORS_PROXY = 'https://corsproxy.io/?';
+// Use our own Vercel proxy, or fallback to alternatives
+const CORS_PROXIES = [
+  '/api/deezer?endpoint=raw&url=',      // Our own proxy (same domain)
+  'https://corsproxy.io/?',              // Third party fallback
+  'https://api.allorigins.win/raw?url=', // Another fallback
+];
+
+// Simple proxy: just prepend the proxy URL
+function getProxyUrl(url: string): string {
+  // On our own domain, use the Vercel serverless function directly
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    // Use our API route which handles the Deezer call server-side
+    const params = new URL(url);
+    const q = params.searchParams.get('q') || '';
+    const limit = params.searchParams.get('limit') || '10';
+    if (url.includes('/search?')) {
+      return `/api/deezer?q=${encodeURIComponent(q)}&limit=${limit}`;
+    }
+  }
+  // Fallback: try CORS proxy
+  return CORS_PROXIES[0] + encodeURIComponent(url);
+}
+
+const CORS_PROXY = CORS_PROXIES[1]; // kept for compatibility
 
 export interface MusicTrack {
   id: string;
@@ -51,8 +74,8 @@ function mapTrack(track: any): MusicTrack {
 export async function searchTracks(query: string, limit = 10): Promise<MusicTrack[]> {
   try {
     const url = `${DEEZER_API}/search?q=${encodeURIComponent(query)}&limit=${limit}`;
-    // Use CORS proxy on web, direct on native
-    const fetchUrl = typeof window !== 'undefined' ? `${CORS_PROXY}${encodeURIComponent(url)}` : url;
+    // Use our proxy on web, direct on native
+    const fetchUrl = typeof window !== 'undefined' ? getProxyUrl(url) : url;
     
     const response = await fetch(fetchUrl);
     const data = await response.json();

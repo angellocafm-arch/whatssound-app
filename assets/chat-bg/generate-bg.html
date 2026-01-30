@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { margin: 0; background: #000; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// Music-themed chat background pattern generator
+// Draws scattered music icons as line art on dark background
+
+const icons = [
+  // Musical notes
+  (ctx,s) => { ctx.beginPath(); ctx.arc(0,0,s*0.3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.moveTo(s*0.3,-s*0.02); ctx.lineTo(s*0.3,-s*0.8); ctx.stroke(); },
+  // Double note (beamed)
+  (ctx,s) => { ctx.beginPath(); ctx.arc(0,0,s*0.25,0,Math.PI*2); ctx.fill(); ctx.arc(s*0.5,s*0.1,s*0.25,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.moveTo(s*0.25,-s*0.02); ctx.lineTo(s*0.25,-s*0.7); ctx.lineTo(s*0.75,-s*0.6); ctx.lineTo(s*0.75,s*0.08); ctx.stroke(); },
+  // Headphones
+  (ctx,s) => { ctx.beginPath(); ctx.arc(0,-s*0.2,s*0.5,Math.PI,0); ctx.stroke(); ctx.fillRect(-s*0.55,-s*0.1,s*0.2,s*0.4); ctx.fillRect(s*0.35,-s*0.1,s*0.2,s*0.4); },
+  // Guitar
+  (ctx,s) => { ctx.beginPath(); ctx.ellipse(0,s*0.15,s*0.3,s*0.4,0,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,-s*0.25); ctx.lineTo(0,-s*0.85); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-s*0.15,-s*0.85); ctx.lineTo(s*0.15,-s*0.85); ctx.stroke(); ctx.beginPath(); ctx.arc(0,s*0.15,s*0.08,0,Math.PI*2); ctx.stroke(); },
+  // Microphone
+  (ctx,s) => { ctx.beginPath(); ctx.ellipse(0,-s*0.3,s*0.2,s*0.3,0,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,s*0.5); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-s*0.2,s*0.5); ctx.lineTo(s*0.2,s*0.5); ctx.stroke(); ctx.beginPath(); ctx.arc(0,-s*0.05,s*0.3,Math.PI,0); ctx.stroke(); },
+  // Vinyl record
+  (ctx,s) => { ctx.beginPath(); ctx.arc(0,0,s*0.45,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(0,0,s*0.15,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(0,0,s*0.05,0,Math.PI*2); ctx.fill(); },
+  // Speaker
+  (ctx,s) => { ctx.strokeRect(-s*0.35,-s*0.45,s*0.7,s*0.9); ctx.beginPath(); ctx.arc(0,-s*0.1,s*0.22,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(0,-s*0.1,s*0.08,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(0,s*0.25,s*0.1,0,Math.PI*2); ctx.stroke(); },
+  // Cassette
+  (ctx,s) => { ctx.strokeRect(-s*0.5,-s*0.3,s,s*0.6); ctx.beginPath(); ctx.arc(-s*0.18,0,s*0.15,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(s*0.18,0,s*0.15,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-s*0.25,s*0.3); ctx.lineTo(-s*0.15,s*0.15); ctx.lineTo(s*0.15,s*0.15); ctx.lineTo(s*0.25,s*0.3); ctx.stroke(); },
+  // Turntable/DJ deck
+  (ctx,s) => { ctx.strokeRect(-s*0.5,-s*0.4,s,s*0.8); ctx.beginPath(); ctx.arc(-s*0.1,0,s*0.28,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(-s*0.1,0,s*0.05,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.moveTo(s*0.25,-s*0.15); ctx.lineTo(-s*0.05,-s*0.02); ctx.stroke(); },
+  // Treble clef (simplified)
+  (ctx,s) => { ctx.beginPath(); ctx.moveTo(s*0.1,s*0.5); ctx.bezierCurveTo(s*0.1,s*0.2,-s*0.3,s*0.1,-s*0.2,-s*0.15); ctx.bezierCurveTo(-s*0.1,-s*0.4,s*0.3,-s*0.3,s*0.15,-s*0.05); ctx.bezierCurveTo(0,s*0.2,-s*0.15,s*0.15,s*0.05,s*0.5); ctx.stroke(); ctx.beginPath(); ctx.moveTo(s*0.05,-s*0.05); ctx.lineTo(s*0.05,-s*0.6); ctx.stroke(); },
+  // Piano keys
+  (ctx,s) => { ctx.strokeRect(-s*0.4,-s*0.25,s*0.8,s*0.5); for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(-s*0.4+i*s*0.27,-s*0.25);ctx.lineTo(-s*0.4+i*s*0.27,s*0.25);ctx.stroke();} ctx.fillRect(-s*0.28,-s*0.25,s*0.12,s*0.3); ctx.fillRect(-s*0.01,-s*0.25,s*0.12,s*0.3); ctx.fillRect(s*0.18,-s*0.25,s*0.12,s*0.3); },
+  // Saxophone
+  (ctx,s) => { ctx.beginPath(); ctx.moveTo(-s*0.1,-s*0.6); ctx.quadraticCurveTo(s*0.3,-s*0.3,s*0.15,s*0.1); ctx.quadraticCurveTo(0,s*0.5,-s*0.2,s*0.4); ctx.stroke(); ctx.beginPath(); ctx.arc(-s*0.2,s*0.4,s*0.12,0,Math.PI*2); ctx.stroke(); },
+  // Trumpet
+  (ctx,s) => { ctx.beginPath(); ctx.moveTo(-s*0.5,0); ctx.lineTo(s*0.2,0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(s*0.2,-s*0.15); ctx.quadraticCurveTo(s*0.5,-s*0.2,s*0.5,0); ctx.quadraticCurveTo(s*0.5,s*0.2,s*0.2,s*0.15); ctx.stroke(); ctx.fillRect(-s*0.2,-s*0.05,s*0.06,s*0.15); ctx.fillRect(-s*0.05,-s*0.05,s*0.06,s*0.18); ctx.fillRect(s*0.1,-s*0.05,s*0.06,s*0.15); },
+  // Radio
+  (ctx,s) => { ctx.strokeRect(-s*0.4,-s*0.3,s*0.8,s*0.6); ctx.beginPath(); ctx.arc(-s*0.05,s*0.05,s*0.18,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-s*0.1,-s*0.3); ctx.lineTo(s*0.25,-s*0.55); ctx.stroke(); ctx.fillRect(s*0.15,-s*0.2,s*0.15,s*0.08); ctx.fillRect(s*0.15,-s*0.05,s*0.15,s*0.08); },
+  // Equalizer bars
+  (ctx,s) => { const heights = [0.3,0.6,0.8,0.5,0.7,0.4,0.55]; heights.forEach((h,i) => { ctx.fillRect(-s*0.45+i*s*0.13, s*0.4-h*s*0.8, s*0.08, h*s*0.8); }); },
+  // Drum
+  (ctx,s) => { ctx.beginPath(); ctx.ellipse(0,-s*0.25,s*0.35,s*0.12,0,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.ellipse(0,s*0.25,s*0.35,s*0.12,0,Math.PI,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-s*0.35,-s*0.25); ctx.lineTo(-s*0.35,s*0.25); ctx.moveTo(s*0.35,-s*0.25); ctx.lineTo(s*0.35,s*0.25); ctx.stroke(); },
+  // Maracas
+  (ctx,s) => { ctx.beginPath(); ctx.arc(-s*0.15,-s*0.2,s*0.2,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-s*0.15,0); ctx.lineTo(-s*0.15,s*0.45); ctx.stroke(); ctx.beginPath(); ctx.arc(s*0.2,-s*0.15,s*0.18,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(s*0.2,0.03*s); ctx.lineTo(s*0.2,s*0.45); ctx.stroke(); },
+  // Star
+  (ctx,s) => { ctx.beginPath(); for(let i=0;i<5;i++){const a=Math.PI*2*i/5-Math.PI/2;const b=Math.PI*2*(i+0.5)/5-Math.PI/2;ctx.lineTo(Math.cos(a)*s*0.35,Math.sin(a)*s*0.35);ctx.lineTo(Math.cos(b)*s*0.15,Math.sin(b)*s*0.15);} ctx.closePath(); ctx.stroke(); },
+  // Sparkle/shine dots
+  (ctx,s) => { const r=s*0.04; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(s*0.15,-s*0.1,r*0.7,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-s*0.12,s*0.08,r*0.5,0,Math.PI*2); ctx.fill(); },
+  // Music wave
+  (ctx,s) => { ctx.beginPath(); for(let x=-s*0.4;x<s*0.4;x+=2){ctx.lineTo(x,Math.sin(x*0.15)*s*0.15);} ctx.stroke(); },
+  // CD/Disc
+  (ctx,s) => { ctx.beginPath(); ctx.arc(0,0,s*0.4,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(0,0,s*0.12,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(0,0,s*0.27,0.5,1.2); ctx.stroke(); ctx.beginPath(); ctx.arc(0,0,s*0.33,2.5,3.5); ctx.stroke(); },
+];
+
+function drawPattern(color, filename) {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  
+  // Dark background with subtle gradient
+  const grad = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.7);
+  grad.addColorStop(0, '#111820');
+  grad.addColorStop(1, '#0B1015');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+  
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  // Seed random for reproducible pattern
+  let seed = 42;
+  function rand() { seed=(seed*16807+0)%2147483647; return seed/2147483647; }
+  
+  // Place icons
+  const cellSize = 90;
+  const cols = Math.ceil(W / cellSize) + 1;
+  const rows = Math.ceil(H / cellSize) + 1;
+  
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = col * cellSize + (row % 2 ? cellSize/2 : 0) + rand() * 20 - 10;
+      const y = row * cellSize + rand() * 20 - 10;
+      const iconIdx = Math.floor(rand() * icons.length);
+      const size = 22 + rand() * 14;
+      const rotation = rand() * Math.PI * 2;
+      const opacity = 0.15 + rand() * 0.2;
+      
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.globalAlpha = opacity;
+      icons[iconIdx](ctx, size);
+      ctx.restore();
+    }
+  }
+  
+  ctx.globalAlpha = 1;
+  return canvas.toDataURL('image/png');
+}
+
+// Generate and display
+const colors = {
+  green: 'rgba(37, 211, 102, 1)',
+  purple: 'rgba(168, 85, 247, 1)',
+  blue: 'rgba(83, 189, 235, 1)',
+};
+
+document.title = JSON.stringify(Object.keys(colors));
+</script>
+</body>
+</html>

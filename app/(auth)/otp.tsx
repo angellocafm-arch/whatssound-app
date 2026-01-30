@@ -76,7 +76,7 @@ export default function OTPScreen() {
         {otp.map((digit, index) => (
           <TextInput
             key={index}
-            ref={(ref) => (inputs.current[index] = ref)}
+            ref={(ref: TextInput | null) => { inputs.current[index] = ref; }}
             style={[styles.otpInput, digit && styles.otpInputFilled]}
             value={digit}
             onChangeText={(text) => handleChange(text, index)}

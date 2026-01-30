@@ -1,24 +1,41 @@
 /**
  * WhatsSound — Compartir QR
- * QR de la sesión para invitar gente
+ * QR de la sesión para invitar gente — reads real session data from route params
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { Button } from '../../src/components/ui/Button';
 
+if (Platform.OS === 'web') {
+  const s = document.createElement('style');
+  s.textContent = '@font-face{font-family:"Ionicons";src:url("/Ionicons.ttf") format("truetype")}';
+  if (!document.querySelector('style[data-ionicons-fix]')) { s.setAttribute('data-ionicons-fix','1'); document.head.appendChild(s); }
+}
+
 export default function ShareQRScreen() {
   const router = useRouter();
+  const { id, name, dj } = useLocalSearchParams<{ id: string; name: string; dj: string }>();
+
+  const sessionName = name || 'Sesión';
+  const djName = dj || 'DJ';
+  const sessionUrl = `whatssound.app/s/${id || 'unknown'}`;
 
   const handleShare = async () => {
     await Share.share({
-      message: '¡Únete a mi sesión en WhatsSound! 🎧\nhttps://whatssound.app/s/abc123',
+      message: `¡Únete a mi sesión en WhatsSound! 🎧\nhttps://${sessionUrl}`,
     });
+  };
+
+  const handleCopy = () => {
+    if (Platform.OS === 'web' && navigator.clipboard) {
+      navigator.clipboard.writeText(`https://${sessionUrl}`);
+    }
   };
 
   return (
@@ -32,8 +49,8 @@ export default function ShareQRScreen() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.sessionName}>Viernes Latino 🔥</Text>
-        <Text style={styles.djName}>DJ Marcos · 47 oyentes</Text>
+        <Text style={styles.sessionName}>{sessionName}</Text>
+        <Text style={styles.djName}>{djName}</Text>
 
         {/* QR Code placeholder */}
         <View style={styles.qrContainer}>
@@ -47,11 +64,11 @@ export default function ShareQRScreen() {
           </View>
         </View>
 
-        <Text style={styles.link}>whatssound.app/s/abc123</Text>
+        <Text style={styles.link}>{sessionUrl}</Text>
 
         <View style={styles.shareButtons}>
           <Button title="Compartir enlace" onPress={handleShare} fullWidth size="lg" icon={<Ionicons name="share-outline" size={20} color={colors.textOnPrimary} />} />
-          <Button title="Copiar enlace" onPress={() => {}} variant="secondary" fullWidth icon={<Ionicons name="copy-outline" size={20} color={colors.primary} />} />
+          <Button title="Copiar enlace" onPress={handleCopy} variant="secondary" fullWidth icon={<Ionicons name="copy-outline" size={20} color={colors.primary} />} />
         </View>
 
         <View style={styles.socialRow}>

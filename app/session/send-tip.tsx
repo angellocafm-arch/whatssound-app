@@ -10,7 +10,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
@@ -32,12 +32,13 @@ export default function SendTipScreen() {
 
   const amount = selectedAmount || Number(customAmount) || 0;
 
-  const sessionId = '9ee38aaa-30a1-4aa8-9925-3155597ad025'; // TODO: from route
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const sessionId = id || '';
 
   const handleSend = async () => {
     if (amount <= 0) return;
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session: _s } } = await supabase.auth.getSession(); const user = _s?.user;
     if (user) {
       await supabase.from('tips').insert({
         session_id: sessionId,

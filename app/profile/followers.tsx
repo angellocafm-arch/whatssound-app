@@ -59,7 +59,7 @@ export default function FollowersScreen() {
 
   const renderUser = ({ item }: { item: UserItem }) => (
     <View style={styles.userRow}>
-      <Avatar size={44} name={item.name} />
+      <Avatar size="md" name={item.name} />
       <View style={styles.userInfo}>
         <Text style={styles.userName}>{item.name}</Text>
         <Text style={styles.userHandle}>{item.username}</Text>

@@ -35,16 +35,16 @@ export default function CreateSessionScreen() {
   const { createSession } = useSessionStore();
 
   const handleCreate = async () => {
-    if (!name.trim() || !selectedGenre) return;
+    if (!name.trim()) return;
+    // Genre is optional — default to 'Varios'
     setLoading(true);
-    const { id, error } = await createSession(name.trim(), selectedGenre);
+    const { id, error } = await createSession(name.trim(), selectedGenre || 'Varios');
     setLoading(false);
     if (id) {
       router.replace(`/session/${id}`);
     } else {
-      // Fallback to mock if error
       console.warn('Create session error:', error);
-      router.replace('/session/1');
+      // Stay on page — show error to user
     }
   };
 

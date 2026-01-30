@@ -14,7 +14,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
@@ -22,7 +22,7 @@ import { spacing, borderRadius } from '../../src/theme/spacing';
 import { useSessionStore } from '../../src/stores/sessionStore';
 import { supabase } from '../../src/lib/supabase';
 
-const SESSION_ID = '9ee38aaa-30a1-4aa8-9925-3155597ad025';
+// Session ID from route params
 
 interface Song {
   id: string;
@@ -36,15 +36,7 @@ interface Song {
   fromDB?: boolean;
 }
 
-const MOCK_QUEUE: Song[] = [
-  { id: 'mock-1', title: 'Gasolina', artist: 'Daddy Yankee', requestedBy: 'Carlos', votes: 12, userVoted: true, status: 'playing', duration: '3:12' },
-  { id: 'mock-2', title: 'Dákiti', artist: 'Bad Bunny ft. Jhay Cortez', requestedBy: 'Laura', votes: 8, userVoted: false, status: 'next', duration: '3:25' },
-  { id: 'mock-3', title: 'Pepas', artist: 'Farruko', requestedBy: 'Pedro', votes: 6, userVoted: true, status: 'queued', duration: '4:47' },
-  { id: 'mock-4', title: 'Tusa', artist: 'Karol G ft. Nicki Minaj', requestedBy: 'María', votes: 5, userVoted: false, status: 'queued', duration: '3:20' },
-  { id: 'mock-5', title: 'Despacito', artist: 'Luis Fonsi ft. Daddy Yankee', requestedBy: 'Ana', votes: 4, userVoted: false, status: 'queued', duration: '3:47' },
-  { id: 'mock-6', title: 'Con Calma', artist: 'Daddy Yankee ft. Snow', requestedBy: 'DJ Marcos', votes: 3, userVoted: false, status: 'queued', duration: '3:30' },
-  { id: 'mock-7', title: 'Baila Conmigo', artist: 'Selena Gomez ft. Rauw', requestedBy: 'Sofia', votes: 2, userVoted: false, status: 'queued', duration: '3:15' },
-];
+// No mock data — all from Supabase
 
 const SongItem = ({ song, onVote }: { song: Song; onVote: () => void }) => (
   <View style={[styles.songItem, song.status === 'playing' && styles.songPlaying]}>
@@ -95,8 +87,10 @@ const SongItem = ({ song, onVote }: { song: Song; onVote: () => void }) => (
 
 export default function QueueScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const sessionId = id || '';
   const { queue: dbQueue, loading, fetchQueue, voteSong } = useSessionStore();
-  const [localQueue, setLocalQueue] = useState<Song[]>(MOCK_QUEUE);
+  const [localQueue, setLocalQueue] = useState<Song[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState(false);
 
@@ -115,46 +109,35 @@ export default function QueueScreen() {
     }));
   }, []);
 
-  // Build merged queue: DB songs first, then mock as fallback
-  const buildQueue = useCallback(() => {
-    const dbSongs = mapDBtoSong(dbQueue);
-    if (dbSongs.length > 0) {
-      // DB songs on top, mock songs below as padding
-      const dbIds = new Set(dbSongs.map(s => s.title.toLowerCase()));
-      const mockFallback = MOCK_QUEUE.filter(s => !dbIds.has(s.title.toLowerCase()));
-      return [...dbSongs, ...mockFallback];
-    }
-    return MOCK_QUEUE;
-  }, [dbQueue, mapDBtoSong]);
-
   useEffect(() => {
-    fetchQueue(SESSION_ID).catch(() => setFetchError(true));
+    if (!sessionId) return;
+    fetchQueue(sessionId).catch(() => setFetchError(true));
 
     // Realtime: refresh queue on any change
     const channel = supabase
-      .channel(`queue-${SESSION_ID}`)
+      .channel(`queue-${sessionId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'queue',
-        filter: `session_id=eq.${SESSION_ID}`,
+        filter: `session_id=eq.${sessionId}`,
       }, () => {
-        fetchQueue(SESSION_ID);
+        fetchQueue(sessionId);
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [sessionId]);
 
   useEffect(() => {
-    setLocalQueue(buildQueue());
-  }, [dbQueue, buildQueue]);
+    setLocalQueue(mapDBtoSong(dbQueue));
+  }, [dbQueue, mapDBtoSong]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchQueue(SESSION_ID);
+    await fetchQueue(sessionId);
     setRefreshing(false);
-  }, [fetchQueue]);
+  }, [fetchQueue, sessionId]);
 
   const handleVote = (id: string, fromDB?: boolean) => {
     // Optimistic local update
@@ -237,7 +220,7 @@ export default function QueueScreen() {
             <View style={styles.centerState}>
               <Ionicons name="cloud-offline-outline" size={40} color={colors.textMuted} />
               <Text style={styles.stateText}>Error al cargar la cola</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={() => fetchQueue(SESSION_ID)}>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => fetchQueue(sessionId)}>
                 <Ionicons name="refresh" size={18} color={colors.textOnPrimary} />
                 <Text style={styles.retryText}>Reintentar</Text>
               </TouchableOpacity>

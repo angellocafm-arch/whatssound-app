@@ -4,7 +4,40 @@
  */
 
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+
+const SUPABASE_URL = 'https://xyehncvvvprrqwnsefcr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+const AUTH_STORAGE_KEY = 'sb-xyehncvvvprrqwnsefcr-auth-token';
+
+function getLocalUser(): { user: any; accessToken: string } | null {
+  try {
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (parsed.user && parsed.access_token) return { user: parsed.user, accessToken: parsed.access_token };
+  } catch {}
+  return null;
+}
+
+async function supabaseRestPost(table: string, body: any, accessToken: string): Promise<{ data: any; error: any }> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${accessToken}`,
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) return { data: null, error: { message: data.message || JSON.stringify(data) } };
+    return { data: Array.isArray(data) ? data[0] : data, error: null };
+  } catch (e: any) {
+    return { data: null, error: { message: e.message } };
+  }
+}
 
 export interface MusicSession {
   id: string;
@@ -58,112 +91,146 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   fetchLiveSessions: async () => {
     set({ loading: true });
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('*, profiles!sessions_dj_id_fkey(display_name, username)')
-      .eq('status', 'live')
-      .order('started_at', { ascending: false });
-
-    if (!error && data) {
-      const sessions = data.map((s: any) => ({
-        ...s,
-        dj_display_name: s.profiles?.display_name,
-        dj_name: s.profiles?.username,
-      }));
-      set({ sessions });
+    try {
+      const local = getLocalUser();
+      const headers: Record<string, string> = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${local?.accessToken || SUPABASE_ANON_KEY}`,
+      };
+      const url = `${SUPABASE_URL}/rest/v1/sessions?status=eq.live&genre=not.in.(%22Chat%22,%22Group%22)&order=started_at.desc&select=*,profiles!sessions_dj_id_fkey(display_name,username)`;
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        const sessions = data.map((s: any) => ({
+          ...s,
+          dj_display_name: s.profiles?.display_name,
+          dj_name: s.profiles?.username,
+          current_song: s.current_song?.startsWith('{') ? null : s.current_song,
+        }));
+        set({ sessions });
+      }
+    } catch (e) {
+      console.warn('fetchLiveSessions error:', e);
     }
     set({ loading: false });
   },
 
   fetchSession: async (id) => {
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('*, profiles!sessions_dj_id_fkey(display_name, username)')
-      .eq('id', id)
-      .single();
-
-    if (!error && data) {
-      set({
-        currentSession: {
-          ...data,
-          dj_display_name: data.profiles?.display_name,
-          dj_name: data.profiles?.username,
-        } as MusicSession,
-      });
+    try {
+      const local = getLocalUser();
+      const headers: Record<string, string> = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${local?.accessToken || SUPABASE_ANON_KEY}`,
+      };
+      const url = `${SUPABASE_URL}/rest/v1/sessions?id=eq.${id}&select=*,profiles!sessions_dj_id_fkey(display_name,username)&limit=1`;
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length > 0) {
+          set({
+            currentSession: {
+              ...data[0],
+              dj_display_name: data[0].profiles?.display_name,
+              dj_name: data[0].profiles?.username,
+            } as MusicSession,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('fetchSession error:', e);
     }
   },
 
   createSession: async (name, genre) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { id: null, error: 'No autenticado' };
+    const local = getLocalUser();
+    if (!local) return { id: null, error: 'No autenticado' };
 
-    const { data, error } = await supabase
-      .from('sessions')
-      .insert({ dj_id: user.id, name, genre, status: 'live' })
-      .select()
-      .single();
+    const { data, error } = await supabaseRestPost('sessions', {
+      dj_id: local.user.id, name, genre, status: 'live',
+    }, local.accessToken);
 
     if (error) return { id: null, error: error.message };
     return { id: data.id, error: null };
   },
 
   endSession: async (id) => {
-    await supabase
-      .from('sessions')
-      .update({ status: 'ended', ended_at: new Date().toISOString() })
-      .eq('id', id);
-
+    const local = getLocalUser();
+    if (!local) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/sessions?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${local.accessToken}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ status: 'ended', ended_at: new Date().toISOString() }),
+      });
+    } catch (e) {
+      console.warn('endSession error:', e);
+    }
     set({ currentSession: null });
     await get().fetchLiveSessions();
   },
 
   fetchQueue: async (sessionId) => {
-    const { data, error } = await supabase
-      .from('queue')
-      .select('*, profiles!queue_requested_by_fkey(display_name)')
-      .eq('session_id', sessionId)
-      .order('votes', { ascending: false })
-      .order('created_at', { ascending: true });
-
-    if (!error && data) {
-      const queue = data.map((q: any) => ({
-        ...q,
-        requester_name: q.profiles?.display_name,
-      }));
-      set({ queue });
+    try {
+      const local = getLocalUser();
+      const headers: Record<string, string> = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${local?.accessToken || SUPABASE_ANON_KEY}`,
+      };
+      const url = `${SUPABASE_URL}/rest/v1/queue?session_id=eq.${sessionId}&order=votes.desc,created_at.asc&select=*,profiles!queue_requested_by_fkey(display_name)`;
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        const queue = data.map((q: any) => ({
+          ...q,
+          requester_name: q.profiles?.display_name,
+        }));
+        set({ queue });
+      }
+    } catch (e) {
+      console.warn('fetchQueue error:', e);
     }
   },
 
   requestSong: async (sessionId, songName, artist) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: 'No autenticado' };
+    const local = getLocalUser();
+    if (!local) return { error: 'No autenticado' };
 
-    const { error } = await supabase
-      .from('queue')
-      .insert({ session_id: sessionId, requested_by: user.id, song_name: songName, artist });
+    const { error } = await supabaseRestPost('queue', {
+      session_id: sessionId, requested_by: local.user.id, song_name: songName, artist,
+    }, local.accessToken);
 
     if (!error) await get().fetchQueue(sessionId);
     return { error: error?.message ?? null };
   },
 
   voteSong: async (queueId) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: 'No autenticado' };
+    const local = getLocalUser();
+    if (!local) return { error: 'No autenticado' };
 
     // Insert vote
-    const { error: voteError } = await supabase
-      .from('votes')
-      .insert({ user_id: user.id, queue_id: queueId });
+    const { error: voteError } = await supabaseRestPost('votes', {
+      user_id: local.user.id, queue_id: queueId,
+    }, local.accessToken);
 
     if (voteError) return { error: voteError.message };
 
-    // Increment vote count
+    // Increment vote count via proxy API
     const item = get().queue.find(q => q.id === queueId);
     if (item) {
-      await supabase
-        .from('queue')
-        .update({ votes: item.votes + 1 })
-        .eq('id', queueId);
+      try {
+        await fetch('/api/vote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queueId }),
+        });
+      } catch (e) {
+        console.warn('vote update error:', e);
+      }
     }
 
     // Refresh queue

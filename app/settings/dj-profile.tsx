@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sectionTitle: {
-    ...typography.h4,
+    ...typography.h3,
     color: colors.textPrimary,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,

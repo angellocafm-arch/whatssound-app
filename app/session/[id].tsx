@@ -7,498 +7,248 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
-import { typography } from '../../src/theme/typography';
-import { spacing, borderRadius } from '../../src/theme/spacing';
-import { Avatar } from '../../src/components/ui/Avatar';
-import { Badge } from '../../src/components/ui/Badge';
 import { supabase } from '../../src/lib/supabase';
 import { useSessionStore } from '../../src/stores/sessionStore';
+import { searchTracks, type MusicTrack } from '../../src/lib/deezer';
+import { SessionHeader } from '../../src/components/SessionHeader';
+import { SessionChat, type ChatMessage } from '../../src/components/SessionChat';
+import { SessionNowPlaying } from '../../src/components/SessionNowPlaying';
+import { SessionInput } from '../../src/components/SessionInput';
 
-interface ChatMessage {
-  id: string;
-  user: string;
-  text: string;
-  isSystem: boolean;
-  isDJ: boolean;
-  time: string;
-  fromDB?: boolean;
+interface PlaylistTrack {
+  id: string; title: string; artist: string; album: string;
+  albumArt?: string | null; duration?: string;
+  status: 'pending' | 'playing' | 'played'; votes: number; userVote?: 'up' | 'down' | null;
 }
-
-// Mock messages as fallback
-const MOCK_MESSAGES: ChatMessage[] = [
-  { id: 'mock-1', user: 'DJ Marcos', text: '¡Bienvenidos a Viernes Latino! 🔥', isSystem: false, isDJ: true, time: '04:02' },
-  { id: 'mock-2', user: 'Sistema', text: 'María se ha unido a la sesión', isSystem: true, isDJ: false, time: '04:03' },
-  { id: 'mock-3', user: 'Carlos', text: 'Ponme Gasolina porfa! 🎶', isSystem: false, isDJ: false, time: '04:05' },
-  { id: 'mock-4', user: 'María', text: '¡Qué buena sesión!', isSystem: false, isDJ: false, time: '04:06' },
-  { id: 'mock-5', user: 'DJ Marcos', text: 'Va Gasolina para Carlos 💪', isSystem: false, isDJ: true, time: '04:07' },
-  { id: 'mock-6', user: 'Sistema', text: '🎵 Ahora suena: Gasolina — Daddy Yankee', isSystem: true, isDJ: false, time: '04:08' },
-  { id: 'mock-7', user: 'Pedro', text: 'Tremenda! 🔥🔥🔥', isSystem: false, isDJ: false, time: '04:09' },
-  { id: 'mock-8', user: 'Laura', text: 'Después ponme algo de Bad Bunny', isSystem: false, isDJ: false, time: '04:10' },
-  { id: 'mock-9', user: 'Carlos', text: 'Gracias DJ!! 🙌', isSystem: false, isDJ: false, time: '04:11' },
-  { id: 'mock-10', user: 'DJ Marcos', text: 'La siguiente es Dákiti 🐰', isSystem: false, isDJ: true, time: '04:12' },
-];
-
-const MOCK_SESSION = {
-  name: 'Viernes Latino 🔥',
-  dj: 'DJ Marcos',
-  genre: 'Reggaeton',
-  listeners: 47,
-  currentSong: 'Gasolina',
-  currentArtist: 'Daddy Yankee',
-  progress: 0.65,
-};
-
-const MessageBubble = ({ message }: { message: ChatMessage }) => {
-  if (message.isSystem) {
-    return (
-      <View style={styles.systemMessage}>
-        <Text style={styles.systemText}>{message.text}</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[
-      styles.bubble,
-      message.isDJ && styles.bubbleDJ,
-      message.fromDB && styles.bubbleFromDB,
-    ]}>
-      <View style={styles.bubbleHeader}>
-        <Text style={[styles.userName, message.isDJ && styles.userNameDJ]}>
-          {message.user}
-        </Text>
-        <Text style={styles.messageTime}>{message.time}</Text>
-      </View>
-      <Text style={styles.messageText}>{message.text}</Text>
-    </View>
-  );
-};
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const { currentSession, fetchSession } = useSessionStore();
+  const [nowPlaying, setNowPlaying] = useState<MusicTrack | null>(null);
+  const [playlistTracks, setPlaylistTracks] = useState<PlaylistTrack[]>([]);
+  const [showPlaylist, setShowPlaylist] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Fetch real session data
+  useEffect(() => { if (id) fetchSession(id); }, [id]);
+
+  // Build playlist from song messages
   useEffect(() => {
-    if (id) fetchSession(id);
-  }, [id]);
+    const tracks: PlaylistTrack[] = messages
+      .filter(m => { if (!m.isSystem) return false; try { return JSON.parse(m.text)?.type === 'song'; } catch { return false; } })
+      .map(m => {
+        const data = JSON.parse(m.text);
+        return { id: m.id, title: data.title, artist: data.artist, album: data.album, albumArt: data.albumArt, duration: data.duration, status: 'pending' as const, votes: 0, userVote: null };
+      });
+    setPlaylistTracks(tracks);
+  }, [messages]);
 
-  // Derive header info from real session or fallback to mock
-  const sessionName = currentSession?.name || MOCK_SESSION.name;
-  const djName = currentSession?.dj_display_name || MOCK_SESSION.dj;
-  const listenerCount = currentSession?.listener_count ?? MOCK_SESSION.listeners;
-  const currentSong = currentSession?.current_song || MOCK_SESSION.currentSong;
-  const currentArtist = currentSession?.current_artist || MOCK_SESSION.currentArtist;
+  // Fetch now playing
+  useEffect(() => {
+    if (!currentSession?.current_song || currentSession.current_song.startsWith('{')) return;
+    searchTracks(`${currentSession.current_song} ${currentSession.current_artist || ''}`, 1)
+      .then(tracks => { if (tracks.length > 0) setNowPlaying(tracks[0]); });
+  }, [currentSession?.current_song, currentSession?.current_artist]);
 
-  // Fetch real messages from Supabase
+  // Derive header info
+  const isDM = currentSession?.genre === 'Chat';
+  const isGroup = currentSession?.genre === 'Group';
+  const isChatMode = isDM || isGroup;
+  const sessionName = currentSession?.name || 'Sesión';
+  const djName = currentSession?.dj_display_name || 'DJ';
+  const listenerCount = currentSession?.listener_count ?? 0;
+  const displayName = isDM ? sessionName.replace('DM: ', '').replace('Chat ', '') : sessionName;
+
+  // Get current user
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token');
+      if (stored) { const parsed = JSON.parse(stored); if (parsed.user?.id) setCurrentUserId(parsed.user.id); }
+    } catch {}
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setCurrentUserId(session.user.id);
+    }).catch(() => {});
+  }, []);
+
+  // Fetch messages + realtime subscription
   useEffect(() => {
     if (!id) return;
 
     const fetchMessages = async () => {
       setLoadingMessages(true);
       setFetchError(false);
-      const { data, error } = await supabase
-        .from('messages')
-        .select('id, content, created_at, user_id, is_system, profiles!messages_user_id_fkey(display_name, username)')
-        .eq('session_id', id)
-        .order('created_at', { ascending: true })
-        .limit(100);
+      let myId = '';
+      try { const stored = localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token'); if (stored) myId = JSON.parse(stored).user?.id || ''; } catch {}
+      if (!myId) {
+        try {
+          const { data: { session: sess } } = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise<never>((_, rej) => setTimeout(() => rej('timeout'), 3000)),
+          ]);
+          myId = sess?.user?.id || '';
+        } catch {}
+      }
+
+      let data: any[] | null = null;
+      let error: any = null;
+      try {
+        let token = '';
+        try { token = JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').access_token || ''; } catch {}
+        const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+        const url = `https://xyehncvvvprrqwnsefcr.supabase.co/rest/v1/messages?session_id=eq.${id}&select=id,content,created_at,user_id,is_system,profiles!messages_user_id_fkey(display_name,username)&order=created_at.asc&limit=100`;
+        const res = await fetch(url, { headers: { 'apikey': apiKey, 'Authorization': `Bearer ${token || apiKey}` } });
+        data = await res.json();
+        if (!Array.isArray(data)) { error = data; data = null; }
+      } catch (e) { error = e; }
 
       if (error) {
         setFetchError(true);
       } else if (data && data.length > 0) {
-        const dbMessages: ChatMessage[] = data.map((m: any) => ({
-          id: m.id,
-          user: m.profiles?.display_name || m.profiles?.username || 'Anónimo',
-          text: m.content,
-          isSystem: m.is_system || false,
-          isDJ: false, // Could be enriched with session.dj_id check
+        setMessages(data.map((m: any) => ({
+          id: m.id, user: m.profiles?.display_name || m.profiles?.username || 'Anónimo',
+          userId: m.user_id || '', text: m.content, isSystem: m.is_system || false,
+          isDJ: false, isMine: m.user_id === myId,
           time: new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
           fromDB: true,
-        }));
-        // DB messages first, then mock as fallback padding
-        setMessages([...dbMessages, ...MOCK_MESSAGES]);
+        })));
+      } else {
+        setMessages([]);
       }
       setLoadingMessages(false);
-      // If no DB messages, keep mock
     };
 
     fetchMessages();
 
-    // Realtime subscription for new messages
+    // Realtime subscription
     const channel = supabase
       .channel(`session-chat-${id}`)
       .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `session_id=eq.${id}`,
+        event: 'INSERT', schema: 'public', table: 'messages', filter: `session_id=eq.${id}`,
       }, async (payload: any) => {
         const m = payload.new;
-        // Fetch profile name
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name, username')
-          .eq('id', m.user_id)
-          .single();
-
+        const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', m.user_id).single();
+        const { data: { session: _s } } = await supabase.auth.getSession();
+        const me = _s?.user;
         const newMsg: ChatMessage = {
-          id: m.id,
-          user: profile?.display_name || profile?.username || 'Anónimo',
-          text: m.content,
-          isSystem: m.is_system || false,
-          isDJ: false,
+          id: m.id, user: profile?.display_name || profile?.username || 'Anónimo',
+          userId: m.user_id || '', text: m.content, isSystem: m.is_system || false,
+          isDJ: false, isMine: m.user_id === me?.id,
           time: new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
           fromDB: true,
         };
-
-        setMessages(prev => {
-          // Avoid duplicates (optimistic add)
-          if (prev.find(p => p.id === m.id)) return prev;
-          // Also skip if it's our local temp message
-          return [...prev, newMsg];
-        });
+        setMessages(prev => prev.find(p => p.id === m.id) ? prev : [...prev, newMsg]);
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Polling fallback
+    let lastPollTime = new Date().toISOString();
+    const pollInterval = setInterval(async () => {
+      const { data: newMsgs } = await supabase
+        .from('messages')
+        .select('id, content, created_at, user_id, is_system, profiles!messages_user_id_fkey(display_name, username)')
+        .eq('session_id', id).gt('created_at', lastPollTime).order('created_at', { ascending: true });
+
+      if (newMsgs && newMsgs.length > 0) {
+        lastPollTime = newMsgs[newMsgs.length - 1].created_at;
+        const { data: { session: _s } } = await supabase.auth.getSession();
+        const me = _s?.user;
+        const polledMsgs: ChatMessage[] = newMsgs.map((m: any) => ({
+          id: m.id, user: m.profiles?.display_name || m.profiles?.username || 'Anónimo',
+          userId: m.user_id || '', text: m.content, isSystem: m.is_system || false,
+          isDJ: false, isMine: m.user_id === me?.id,
+          time: new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          fromDB: true,
+        }));
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newOnly = polledMsgs.filter(m => !existingIds.has(m.id));
+          if (newOnly.length === 0) return prev;
+          const cleaned = prev.filter(p => !p.id.startsWith('local-') || !newOnly.find(n => n.text === p.text));
+          return [...cleaned, ...newOnly];
+        });
+      }
+    }, 3000);
+
+    return () => { supabase.removeChannel(channel); clearInterval(pollInterval); };
   }, [id]);
 
   const sendMessage = async () => {
     if (!message.trim()) return;
-
     const text = message.trim();
     const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-
-    // Optimistic local add
     const tempId = `local-${Date.now()}`;
-    const newMsg: ChatMessage = {
-      id: tempId,
-      user: 'Tú',
-      text,
-      isSystem: false,
-      isDJ: false,
-      time,
-      fromDB: true,
-    };
-    setMessages(prev => [...prev, newMsg]);
+    setMessages(prev => [...prev, { id: tempId, user: 'Tú', userId: currentUserId || '', text, isSystem: false, isDJ: false, isMine: true, time, fromDB: true }]);
     setMessage('');
 
-    // Persist to Supabase
     if (id) {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session: _sess } } = await supabase.auth.getSession();
+      const user = _sess?.user;
       if (user) {
-        const { data, error } = await supabase
-          .from('messages')
-          .insert({
-            session_id: id,
-            user_id: user.id,
-            content: text,
-          })
-          .select('id')
-          .single();
-
-        // Replace temp ID with real ID
-        if (!error && data) {
-          setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.id } : m));
-        }
+        const { data, error } = await supabase.from('messages').insert({ session_id: id, user_id: user.id, content: text }).select('id').single();
+        if (!error && data) setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.id } : m));
       }
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Avatar name={djName} size="sm" online />
-        <View style={styles.headerInfo}>
-          <Text style={styles.sessionName}>{sessionName}</Text>
-          <Text style={styles.djName}>{djName} · {listenerCount} oyentes</Text>
-        </View>
-        <Badge text="EN VIVO" variant="live" dot />
-        <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/session/queue')}>
-          <Ionicons name="musical-notes" size={22} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/session/dj-panel')}>
-          <Ionicons name="disc" size={22} color={colors.accent} />
-        </TouchableOpacity>
-      </View>
+      <SessionHeader
+        sessionName={sessionName} djName={djName} displayName={displayName}
+        listenerCount={listenerCount} isDM={isDM} isGroup={isGroup} isChatMode={isChatMode}
+        onBack={() => router.back()}
+        onQueuePress={() => router.push('/session/queue')}
+        onDJPanelPress={() => router.push('/session/dj-panel')}
+      />
 
-      {/* Chat */}
       <KeyboardAvoidingView
         style={styles.chatContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <MessageBubble message={item} />}
-          contentContainerStyle={[styles.messagesList, messages.length === 0 && { flex: 1 }]}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          ListHeaderComponent={
-            loadingMessages ? (
-              <View style={styles.centerState}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.stateText}>Cargando chat...</Text>
-              </View>
-            ) : fetchError ? (
-              <View style={styles.centerState}>
-                <Ionicons name="cloud-offline-outline" size={40} color={colors.textMuted} />
-                <Text style={styles.stateText}>Error al cargar mensajes</Text>
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            !loadingMessages && !fetchError ? (
-              <View style={styles.centerState}>
-                <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.stateTitle}>Sin mensajes aún</Text>
-                <Text style={styles.stateText}>¡Sé el primero en escribir!</Text>
-              </View>
-            ) : null
-          }
+        <SessionChat
+          messages={messages}
+          loading={loadingMessages}
+          error={fetchError}
+          flatListRef={flatListRef}
         />
 
-        {/* Mini player */}
-        <View style={styles.miniPlayer}>
-          <View style={styles.playerLeft}>
-            <View style={styles.albumArt}>
-              <Ionicons name="musical-note" size={16} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={styles.songName}>{currentSong}</Text>
-              <Text style={styles.artistName}>{currentArtist}</Text>
-            </View>
-          </View>
-          <View style={styles.progressBar}>
-            <View style={[styles.progress, { width: `${(currentSession as any)?.progress ? (currentSession as any).progress * 100 : MOCK_SESSION.progress * 100}%` }]} />
-          </View>
-          <TouchableOpacity>
-            <Ionicons name="heart-outline" size={22} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Input bar */}
-        <View style={styles.inputBar}>
-          <TouchableOpacity style={styles.inputBtn} onPress={() => router.push('/session/request-song')}>
-            <Ionicons name="add-circle" size={28} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.inputBtn} onPress={() => router.push('/session/send-tip')}>
-            <Ionicons name="cash-outline" size={24} color={colors.accent} />
-          </TouchableOpacity>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Escribe un mensaje..."
-            placeholderTextColor={colors.textMuted}
-            value={message}
-            onChangeText={setMessage}
-            onSubmitEditing={sendMessage}
-            returnKeyType="send"
+        {!isChatMode && (
+          <SessionNowPlaying
+            playlistTracks={playlistTracks}
+            showPlaylist={showPlaylist}
+            onTogglePlaylist={() => setShowPlaylist(!showPlaylist)}
+            onCommentTrack={(title) => { setMessage(`🎵 Sobre "${title}": `); setShowPlaylist(false); }}
           />
-          <TouchableOpacity style={styles.inputBtn} onPress={sendMessage}>
-            <Ionicons
-              name={message.trim() ? 'send' : 'mic'}
-              size={24}
-              color={colors.primary}
-            />
-          </TouchableOpacity>
-        </View>
+        )}
+
+        <SessionInput
+          value={message}
+          onChangeText={setMessage}
+          onSend={sendMessage}
+          isChatMode={isChatMode}
+          onSearchPress={() => router.push(`/session/request-song?sid=${id}`)}
+          onQueuePress={() => router.push('/session/queue')}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    gap: spacing.sm,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.border,
-  },
-  backBtn: {
-    padding: spacing.xs,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  sessionName: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-  djName: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  headerBtn: {
-    padding: spacing.xs,
-  },
-  chatContainer: {
-    flex: 1,
-  },
-  messagesList: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
-  },
-  systemMessage: {
-    alignSelf: 'center',
-    backgroundColor: colors.bubbleSystem,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-    marginVertical: spacing.xs,
-  },
-  systemText: {
-    ...typography.caption,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  bubble: {
-    backgroundColor: colors.bubbleOther,
-    borderRadius: borderRadius.lg,
-    padding: spacing.sm,
-    maxWidth: '85%',
-    alignSelf: 'flex-start',
-  },
-  bubbleDJ: {
-    backgroundColor: colors.bubbleOwn,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-  },
-  bubbleFromDB: {
-    borderLeftWidth: 2,
-    borderLeftColor: '#22c55e',
-  },
-  bubbleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-    gap: spacing.sm,
-  },
-  userName: {
-    ...typography.captionBold,
-    color: colors.accent,
-  },
-  userNameDJ: {
-    color: colors.primary,
-  },
-  messageTime: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontSize: 10,
-  },
-  messageText: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-  miniPlayer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-    borderTopWidth: 0.5,
-    borderTopColor: colors.border,
-  },
-  playerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flex: 1,
-  },
-  albumArt: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  songName: {
-    ...typography.bodySmall,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  artistName: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  progressBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: colors.progressTrack,
-  },
-  progress: {
-    height: 2,
-    backgroundColor: colors.progressBar,
-  },
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.background,
-    gap: spacing.xs,
-    borderTopWidth: 0.5,
-    borderTopColor: colors.border,
-  },
-  inputBtn: {
-    padding: spacing.xs,
-  },
-  textInput: {
-    flex: 1,
-    ...typography.body,
-    color: colors.textPrimary,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    maxHeight: 100,
-    fontSize: 15,
-  },
-  centerState: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing['3xl'], gap: spacing.sm },
-  stateTitle: { ...typography.h3, color: colors.textPrimary },
-  stateText: { ...typography.bodySmall, color: colors.textMuted, textAlign: 'center' },
+  container: { flex: 1, backgroundColor: colors.background },
+  chatContainer: { flex: 1 },
 });

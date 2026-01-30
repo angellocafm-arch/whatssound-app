@@ -1,6 +1,6 @@
 /**
  * WhatsSound — En Vivo
- * Sesiones activas — datos reales de Supabase + mock fallback
+ * Sesiones activas — datos reales de Supabase
  */
 
 import React, { useState, useEffect } from 'react';
@@ -26,12 +26,7 @@ import { useSessionStore, type MusicSession } from '../../src/stores/sessionStor
 
 const FILTERS = ['Todos', 'Mis grupos', 'Cerca de mí', 'Públicas'];
 
-// Mock sessions as fallback while we connect everything
-const MOCK_SESSIONS = [
-  { id: 'mock-2', name: 'Cumple Sara', dj_display_name: 'DJ Marcos', genre: 'Pop', listener_count: 9, current_song: 'Happy', current_artist: 'Pharrell' },
-  { id: 'mock-3', name: 'Techno Night', dj_display_name: 'MNML_Dave', genre: 'Techno', listener_count: 128, current_song: 'Sandstorm', current_artist: 'Darude' },
-  { id: 'mock-4', name: 'Chill Lounge', dj_display_name: 'LoFi Girl', genre: 'Lo-Fi', listener_count: 65, current_song: 'Snowman', current_artist: 'Lofi Fruits' },
-];
+// All data from Supabase
 
 export default function LiveScreen() {
   const router = useRouter();
@@ -55,20 +50,15 @@ export default function LiveScreen() {
     setRefreshing(false);
   };
 
-  // Combine real sessions + mock fallback
-  const allSessions = [
-    ...sessions.map(s => ({
-      id: s.id,
-      name: s.name,
-      dj_display_name: s.dj_display_name || 'DJ',
-      genre: s.genre || 'Varios',
-      listener_count: s.listener_count,
-      current_song: s.current_song || 'Sin canción',
-      current_artist: s.current_artist || '',
-      isReal: true,
-    })),
-    ...MOCK_SESSIONS.map(s => ({ ...s, isReal: false })),
-  ];
+  const allSessions = sessions.map(s => ({
+    id: s.id,
+    name: s.name,
+    dj_display_name: s.dj_display_name || 'DJ',
+    genre: s.genre || 'Varios',
+    listener_count: s.listener_count,
+    current_song: s.current_song || 'Sin canción',
+    current_artist: s.current_artist || '',
+  }));
 
   const featured = allSessions.reduce((max, s) => s.listener_count > max.listener_count ? s : max, allSessions[0]);
   const totalActive = allSessions.length;
@@ -126,7 +116,7 @@ export default function LiveScreen() {
       )}
 
       {/* Empty state */}
-      {!loading && !fetchError && sessions.length === 0 && MOCK_SESSIONS.length === 0 && (
+      {!loading && !fetchError && sessions.length === 0 && (
         <View style={styles.centerState}>
           <Ionicons name="radio-outline" size={48} color={colors.textMuted} />
           <Text style={styles.stateTitle}>No hay sesiones en vivo</Text>
@@ -138,7 +128,7 @@ export default function LiveScreen() {
       {!loading && featured && (
         <Card style={styles.featuredCard}>
           <View style={styles.featuredBadge}>
-            <Badge text={featured.isReal ? '🟢 EN VIVO · REAL' : '🔥 MÁS POPULAR'} variant="live" />
+            <Badge text="🟢 EN VIVO" variant="live" />
           </View>
           <View style={styles.featuredContent}>
             <View style={styles.featuredInfo}>
@@ -168,14 +158,13 @@ export default function LiveScreen() {
         >
           <View style={styles.sessionAvatar}>
             <Avatar name={session.dj_display_name} size="lg" />
-            <View style={[styles.liveIndicator, session.isReal && styles.liveIndicatorReal]}>
+            <View style={[styles.liveIndicator, styles.liveIndicatorReal]}>
               <View style={styles.livePulse} />
             </View>
           </View>
           <View style={styles.sessionInfo}>
             <View style={styles.sessionTopRow}>
               <Text style={styles.sessionName} numberOfLines={1}>{session.name}</Text>
-              {session.isReal && <Badge text="REAL" variant="success" />}
             </View>
             <Text style={styles.sessionDj}>{session.dj_display_name} · {session.genre}</Text>
             <View style={styles.sessionSongRow}>

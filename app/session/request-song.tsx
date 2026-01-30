@@ -1,6 +1,6 @@
 /**
  * WhatsSound — Pedir Canción
- * Búsqueda con resultados mock (modo simulado)
+ * Búsqueda de canciones via Deezer/Spotify
  */
 
 import React, { useState } from 'react';
@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
@@ -21,6 +21,7 @@ import { spacing, borderRadius } from '../../src/theme/spacing';
 import { useSessionStore } from '../../src/stores/sessionStore';
 import { searchTracks as spotifySearch, isSpotifyConfigured } from '../../src/lib/spotify';
 import { searchTracks as deezerSearch, type MusicTrack } from '../../src/lib/deezer';
+// supabase client not used here — direct fetch() for reliability in China
 
 interface SearchResult {
   id: string;
@@ -32,15 +33,7 @@ interface SearchResult {
   albumArt?: string | null;
 }
 
-const MOCK_RESULTS: SearchResult[] = [
-  { id: '1', title: 'Gasolina', artist: 'Daddy Yankee', album: 'Barrio Fino', duration: '3:12', alreadyRequested: true },
-  { id: '2', title: 'Lo Que Pasó, Pasó', artist: 'Daddy Yankee', album: 'Barrio Fino', duration: '3:29', alreadyRequested: false },
-  { id: '3', title: 'Rompe', artist: 'Daddy Yankee', album: 'Barrio Fino', duration: '3:53', alreadyRequested: false },
-  { id: '4', title: 'Ella Me Levantó', artist: 'Daddy Yankee', album: 'El Cartel III', duration: '4:02', alreadyRequested: false },
-  { id: '5', title: 'Limbo', artist: 'Daddy Yankee', album: 'Prestige', duration: '3:41', alreadyRequested: false },
-  { id: '6', title: 'Dura', artist: 'Daddy Yankee', album: 'Dura', duration: '3:21', alreadyRequested: false },
-  { id: '7', title: 'Con Calma', artist: 'Daddy Yankee ft. Snow', album: 'Con Calma', duration: '3:30', alreadyRequested: false },
-];
+// No mock data — real search only via Deezer/Spotify
 
 const ResultItem = ({ song, onRequest }: { song: SearchResult; onRequest: () => void }) => (
   <TouchableOpacity
@@ -101,37 +94,85 @@ export default function RequestSongScreen() {
     } else {
       // Deezer search (default — free, no API key)
       const tracks = await deezerSearch(text, 10);
-      if (tracks.length > 0) {
-        setResults(tracks.map(t => ({
-          id: t.id,
-          title: t.name,
-          artist: t.artist,
-          album: t.album,
-          duration: t.duration,
-          alreadyRequested: false,
-          albumArt: t.albumArt,
-        })));
-      } else {
-        // Mock fallback if Deezer fails
-        setResults(MOCK_RESULTS.filter(s =>
-          s.title.toLowerCase().includes(text.toLowerCase()) ||
-          s.artist.toLowerCase().includes(text.toLowerCase())
-        ));
-      }
+      setResults(tracks.map(t => ({
+        id: t.id,
+        title: t.name,
+        artist: t.artist,
+        album: t.album,
+        duration: t.duration,
+        alreadyRequested: false,
+        albumArt: t.albumArt,
+      })));
     }
     setSearching(false);
   };
 
-  const { requestSong } = useSessionStore();
-  const sessionId = '9ee38aaa-30a1-4aa8-9925-3155597ad025'; // TODO: from route params
+  const { sid } = useLocalSearchParams<{ sid: string }>();
+  const { currentSession } = useSessionStore();
+  const sessionId = sid || currentSession?.id || '';
 
   const handleRequest = async (id: string) => {
     const song = results.find(s => s.id === id);
-    if (!song) return;
+    if (!song || !sessionId) return;
     setResults(prev => prev.map(s =>
       s.id === id ? { ...s, alreadyRequested: true } : s
     ));
-    await requestSong(sessionId, song.title, song.artist);
+
+    // 1. Add to queue and get the queue item ID
+    const API_URL = 'https://xyehncvvvprrqwnsefcr.supabase.co/rest/v1/';
+    const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+    let token = '';
+    try { token = JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').access_token || ''; } catch {}
+    let userId = '';
+    try { userId = JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').user?.id || ''; } catch {}
+    const headers: Record<string, string> = {
+      'apikey': API_KEY,
+      'Authorization': `Bearer ${token || API_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+    };
+
+    // Insert queue item via direct fetch to get the ID back
+    let queueId: string | null = null;
+    try {
+      const queueRes = await fetch(`${API_URL}queue`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ session_id: sessionId, requested_by: userId, song_name: song.title, artist: song.artist }),
+      });
+      const queueData = await queueRes.json();
+      if (Array.isArray(queueData) && queueData[0]?.id) queueId = queueData[0].id;
+    } catch (e) {
+      console.error('Queue insert error:', e);
+    }
+
+    // 2. Create a special "song card" message in the chat with queueId
+    if (userId) {
+      const songData = JSON.stringify({
+        type: 'song',
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        albumArt: song.albumArt || null,
+        duration: song.duration,
+        deezerId: song.id,
+        queueId: queueId,
+      });
+      try {
+        await fetch(`${API_URL}messages`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            session_id: sessionId,
+            user_id: userId,
+            content: songData,
+            is_system: true,
+          }),
+        });
+      } catch (e) {
+        console.error('Message insert error:', e);
+      }
+    }
   };
 
   return (
