@@ -100,45 +100,6 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <View style={s.root}>
-      {/* Sidebar */}
-      {isWide && (
-        <View style={s.sidebar}>
-          <View style={s.sidebarLogo}>
-            <Ionicons name="headset" size={28} color={colors.primary} />
-            <Text style={s.sidebarTitle}>WhatsSound</Text>
-          </View>
-          <Text style={s.sidebarSubtitle}>Admin Dashboard</Text>
-
-          {[
-            { icon: 'grid' as const, label: 'Overview', active: true },
-            { icon: 'people' as const, label: 'Usuarios', active: false },
-            { icon: 'radio' as const, label: 'Sesiones', active: false },
-            { icon: 'chatbubbles' as const, label: 'Chat IA', active: false },
-            { icon: 'bar-chart' as const, label: 'Engagement', active: false },
-            { icon: 'cash' as const, label: 'Revenue', active: false },
-            { icon: 'warning' as const, label: 'Alertas', active: false },
-            { icon: 'settings' as const, label: 'Config', active: false },
-          ].map((item, i) => (
-            <TouchableOpacity key={i} style={[s.sidebarItem, item.active && s.sidebarItemActive]}>
-              <Ionicons name={item.icon} size={18} color={item.active ? colors.primary : colors.textMuted} />
-              <Text style={[s.sidebarItemText, item.active && { color: colors.primary }]}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
-
-          <View style={s.sidebarFooter}>
-            <View style={s.sidebarAdmin}>
-              <View style={s.adminAvatar}><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>KA</Text></View>
-              <View>
-                <Text style={s.adminName}>Kike & Ángel</Text>
-                <Text style={s.adminRole}>Super Admin</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* Main Content */}
       <ScrollView style={s.main} contentContainerStyle={s.mainContent}>
         {/* Header */}
         <View style={s.header}>
@@ -271,28 +232,11 @@ export default function AdminDashboard() {
         </View>
 
       </ScrollView>
-    </View>
   );
 }
 
 // ─── Styles ──────────────────────────────────────────────
 const s = StyleSheet.create({
-  root: { flex: 1, flexDirection: 'row', backgroundColor: '#0a0f1a', ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 } : {}) },
-
-  // Sidebar
-  sidebar: { width: 240, backgroundColor: '#0d1321', borderRightWidth: 1, borderRightColor: colors.border, paddingTop: spacing.xl, paddingHorizontal: spacing.md },
-  sidebarLogo: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 4 },
-  sidebarTitle: { ...typography.h3, color: colors.textPrimary, fontSize: 18 },
-  sidebarSubtitle: { ...typography.caption, color: colors.textMuted, fontSize: 11, marginBottom: spacing.xl },
-  sidebarItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.sm, borderRadius: borderRadius.md, marginBottom: 2 },
-  sidebarItemActive: { backgroundColor: colors.primary + '15' },
-  sidebarItemText: { ...typography.bodySmall, color: colors.textMuted, fontSize: 13 },
-  sidebarFooter: { position: 'absolute', bottom: spacing.xl, left: spacing.md, right: spacing.md },
-  sidebarAdmin: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  adminAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary + '20', alignItems: 'center', justifyContent: 'center' },
-  adminName: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 13 },
-  adminRole: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
-
   // Main
   main: { flex: 1 },
   mainContent: { padding: isWide ? spacing.xl : spacing.md, paddingBottom: spacing['4xl'] },
