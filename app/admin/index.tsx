@@ -16,7 +16,7 @@ import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 
 const { width: SW } = Dimensions.get('window');
-const isWide = SW > 768;
+const isWide = Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.innerWidth > 768 : true) : SW > 768;
 
 // ─── Mock Metrics (will connect to Supabase) ─────────────
 const METRICS = {
@@ -277,7 +277,7 @@ export default function AdminDashboard() {
 
 // ─── Styles ──────────────────────────────────────────────
 const s = StyleSheet.create({
-  root: { flex: 1, flexDirection: 'row', backgroundColor: '#0a0f1a' },
+  root: { flex: 1, flexDirection: 'row', backgroundColor: '#0a0f1a', ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 } : {}) },
 
   // Sidebar
   sidebar: { width: 240, backgroundColor: '#0d1321', borderRightWidth: 1, borderRightColor: colors.border, paddingTop: spacing.xl, paddingHorizontal: spacing.md },
