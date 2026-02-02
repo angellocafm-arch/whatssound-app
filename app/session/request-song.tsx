@@ -1,156 +1,120 @@
 /**
- * WhatsSound — Pedir Canción (Demo Inversores)
- * Buscador con resultados mock de canciones reales
+ * WhatsSound — Pedir Canción
+ * Referencia: 18-pedir-cancion.png
+ * Búsqueda + resultados con botón Pedir / ✓ Pedida
  */
 
 import React, { useState } from 'react';
-import {
-  View, Text, TextInput, FlatList, StyleSheet,
-  TouchableOpacity, Image,
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 
-interface Song {
-  id: string; title: string; artist: string; album: string;
-  art: string; dur: string; requested: boolean;
-}
+const COLORS = ['#E91E63', '#00BCD4', '#FF9800', '#3F51B5', '#009688', '#9C27B0', '#FF5722', '#4CAF50'];
 
-const ALL_SONGS: Song[] = [
-  { id:'s1', title:'Gasolina', artist:'Daddy Yankee', album:'Barrio Fino', art:'https://e-cdns-images.dzcdn.net/images/cover/ed4fed49e1447e63e4e8d0e0e3a20ca3/500x500-000000-80-0-0.jpg', dur:'3:12', requested:false },
-  { id:'s2', title:'Despacito', artist:'Luis Fonsi ft. Daddy Yankee', album:'Vida', art:'https://e-cdns-images.dzcdn.net/images/cover/11be4e951f2e7467b255f4e2a4c37ae8/500x500-000000-80-0-0.jpg', dur:'3:47', requested:false },
-  { id:'s3', title:'Dákiti', artist:'Bad Bunny & Jhay Cortez', album:'El Último Tour Del Mundo', art:'https://e-cdns-images.dzcdn.net/images/cover/59e41ee07b3a9af3e1a8a6ce79b5a7bb/500x500-000000-80-0-0.jpg', dur:'3:25', requested:false },
-  { id:'s4', title:'La Bicicleta', artist:'Shakira & Carlos Vives', album:'El Dorado', art:'https://e-cdns-images.dzcdn.net/images/cover/a61aec4942e11c528e0dda3a39978af3/500x500-000000-80-0-0.jpg', dur:'3:40', requested:false },
-  { id:'s5', title:'Vivir Mi Vida', artist:'Marc Anthony', album:'3.0', art:'https://e-cdns-images.dzcdn.net/images/cover/cf1ef4ff2daa7e6fde7a171f8e934b33/500x500-000000-80-0-0.jpg', dur:'4:11', requested:false },
-  { id:'s6', title:'Bailando', artist:'Enrique Iglesias ft. Gente de Zona', album:'Sex and Love', art:'https://e-cdns-images.dzcdn.net/images/cover/92339ea3a0e32a55b tried/500x500-000000-80-0-0.jpg', dur:'4:03', requested:false },
-  { id:'s7', title:'Chantaje', artist:'Shakira ft. Maluma', album:'El Dorado', art:'https://e-cdns-images.dzcdn.net/images/cover/a61aec4942e11c528e0dda3a39978af3/500x500-000000-80-0-0.jpg', dur:'3:16', requested:false },
-  { id:'s8', title:'Mi Gente', artist:'J Balvin & Willy William', album:'Vibras', art:'https://e-cdns-images.dzcdn.net/images/cover/3a4b53ea7d5a277c6d7928e0634e6e67/500x500-000000-80-0-0.jpg', dur:'3:09', requested:false },
-  { id:'s9', title:'Tusa', artist:'KAROL G & Nicki Minaj', album:'KG0516', art:'https://e-cdns-images.dzcdn.net/images/cover/74b5074bfa0356b1c87bb77b0a01be7c/500x500-000000-80-0-0.jpg', dur:'3:20', requested:false },
-  { id:'s10', title:'Safaera', artist:'Bad Bunny, Jowell & Randy, Ñengo Flow', album:'YHLQMDLG', art:'https://e-cdns-images.dzcdn.net/images/cover/59e41ee07b3a9af3e1a8a6ce79b5a7bb/500x500-000000-80-0-0.jpg', dur:'4:56', requested:false },
-  { id:'s11', title:'Hawái', artist:'Maluma', album:'Papi Juancho', art:'https://e-cdns-images.dzcdn.net/images/cover/3f44e7de72e1cce0a929e5e6a03a7be5/500x500-000000-80-0-0.jpg', dur:'3:26', requested:false },
-  { id:'s12', title:'Ella Baila Sola', artist:'Eslabon Armado & Peso Pluma', album:'Desvelado', art:'https://e-cdns-images.dzcdn.net/images/cover/f76289eaeb3bb4cb4d58a5a4a1f1b1f5/500x500-000000-80-0-0.jpg', dur:'2:52', requested:false },
+const RESULTS = [
+  { id:'1', title: 'Dakiti', artist: 'Bad Bunny, Jhay Cortez', duration: '3:25' },
+  { id:'2', title: 'Titi Me Preguntó', artist: 'Bad Bunny', duration: '4:03' },
+  { id:'3', title: 'Yonaguni', artist: 'Bad Bunny', duration: '3:27' },
+  { id:'4', title: 'Callaíta', artist: 'Bad Bunny', duration: '4:16' },
+  { id:'5', title: 'Moscow Mule', artist: 'Bad Bunny', duration: '4:11' },
+  { id:'6', title: 'Efecto', artist: 'Bad Bunny', duration: '3:32' },
 ];
 
 export default function RequestSongScreen() {
   const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [songs, setSongs] = useState<Song[]>(ALL_SONGS);
-  const [confirmed, setConfirmed] = useState<string | null>(null);
+  const [query, setQuery] = useState('bad bunny');
+  const [requested, setRequested] = useState<Set<string>>(new Set(['2']));
 
-  const filtered = query.length < 1 ? [] : songs.filter(s =>
-    s.title.toLowerCase().includes(query.toLowerCase()) ||
-    s.artist.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const request = (id: string) => {
-    setSongs(p => p.map(s => s.id === id ? { ...s, requested: true } : s));
-    setConfirmed(id);
-    setTimeout(() => router.back(), 1200);
+  const handleRequest = (id: string) => {
+    setRequested(prev => new Set(prev).add(id));
   };
 
   return (
-    <View style={st.container}>
-      <View style={st.header}>
+    <View style={s.container}>
+      {/* Header */}
+      <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="close" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={st.headerTitle}>Pedir canción</Text>
+        <Text style={s.headerTitle}>Pedir canción</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={st.searchWrap}>
-        <Ionicons name="search" size={20} color={colors.textMuted} />
+      {/* Search */}
+      <View style={s.searchBox}>
+        <Ionicons name="search" size={18} color={colors.textMuted} />
         <TextInput
-          style={st.searchInput}
-          placeholder="Buscar canciones, artistas..."
+          style={s.searchInput}
+          placeholder="Buscar canción o artista..."
           placeholderTextColor={colors.textMuted}
-          value={query} onChangeText={setQuery}
-          autoFocus selectionColor={colors.primary}
+          value={query}
+          onChangeText={setQuery}
+          autoFocus
         />
-        {query.length > 0 && (
-          <TouchableOpacity onPress={() => { setQuery(''); }}>
-            <Ionicons name="close-circle" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-        )}
       </View>
 
-      {/* Confirmed toast */}
-      {confirmed && (
-        <View style={st.toast}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-          <Text style={st.toastText}>¡Canción añadida a la cola!</Text>
-        </View>
-      )}
-
-      {query.length < 1 ? (
-        <View style={st.empty}>
-          <Ionicons name="search" size={48} color={colors.surfaceLight} />
-          <Text style={st.emptyTitle}>Busca tu canción</Text>
-          <Text style={st.emptySub}>Escribe al menos 1 carácter</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={i => i.id}
-          contentContainerStyle={{ paddingBottom: spacing['3xl'] }}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={st.resultItem}
-              onPress={() => !item.requested && request(item.id)}
-              disabled={item.requested}
-              activeOpacity={0.7}
-            >
-              <Image source={{ uri: item.art }} style={st.resultArt} />
-              <View style={{ flex: 1 }}>
-                <Text style={st.resultTitle} numberOfLines={1}>{item.title}</Text>
-                <Text style={st.resultArtist} numberOfLines={1}>{item.artist} · {item.album}</Text>
+      {/* Results */}
+      <ScrollView contentContainerStyle={s.results}>
+        {RESULTS.map((song, i) => {
+          const isRequested = requested.has(song.id);
+          return (
+            <View key={song.id} style={s.songRow}>
+              {/* Album art placeholder */}
+              <View style={[s.albumArt, { backgroundColor: COLORS[i % COLORS.length] }]}>
+                <Ionicons name="musical-notes" size={18} color="rgba(255,255,255,0.7)" />
               </View>
-              <Text style={st.resultDur}>{item.dur}</Text>
-              {item.requested ? (
-                <View style={st.requestedBadge}>
-                  <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.songTitle}>{song.title}</Text>
+                <Text style={s.songArtist}>{song.artist}</Text>
+                <Text style={s.songDuration}>{song.duration}</Text>
+              </View>
+              {isRequested ? (
+                <View style={s.requestedBtn}>
+                  <Text style={s.requestedText}>✓ Pedida</Text>
                 </View>
               ) : (
-                <View style={st.requestBtn}>
-                  <Text style={st.requestBtnText}>Pedir</Text>
-                </View>
+                <TouchableOpacity style={s.requestBtn} onPress={() => handleRequest(song.id)}>
+                  <Text style={s.requestBtnText}>Pedir</Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={
-            <View style={st.empty}>
-              <Ionicons name="sad" size={48} color={colors.surfaceLight} />
-              <Text style={st.emptyTitle}>Sin resultados</Text>
-              <Text style={st.emptySub}>Prueba con otra búsqueda</Text>
             </View>
-          }
-        />
-      )}
+          );
+        })}
+
+        {/* Footer */}
+        <Text style={s.footer}>Powered by <Text style={{ color: colors.primary }}>Deezer</Text></Text>
+      </ScrollView>
     </View>
   );
 }
 
-const st = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.md, backgroundColor: colors.surface },
-  headerTitle: { ...typography.h3, color: colors.textPrimary },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, marginHorizontal: spacing.base, marginVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: borderRadius.lg, gap: spacing.sm, minHeight: 44 },
-  searchInput: { flex: 1, ...typography.body, color: colors.textPrimary, paddingVertical: spacing.sm },
-  toast: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.primary + '20', marginHorizontal: spacing.base, marginBottom: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.lg },
-  toastText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
-  resultItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.base, paddingVertical: spacing.md, gap: spacing.md, borderBottomWidth: .5, borderBottomColor: colors.divider },
-  resultArt: { width: 48, height: 48, borderRadius: borderRadius.md },
-  resultTitle: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 15 },
-  resultArtist: { ...typography.caption, color: colors.textSecondary },
-  resultDur: { ...typography.caption, color: colors.textMuted },
-  requestBtn: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full },
-  requestBtnText: { ...typography.captionBold, color: colors.textOnPrimary },
-  requestedBadge: { padding: spacing.xs },
-  empty: { alignItems: 'center', justifyContent: 'center', paddingTop: spacing['5xl'], gap: spacing.sm },
-  emptyTitle: { ...typography.h3, color: colors.textSecondary },
-  emptySub: { ...typography.body, color: colors.textMuted },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.md },
+  headerTitle: { ...typography.h3, color: colors.textPrimary, fontSize: 18 },
+  searchBox: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.surface, borderRadius: borderRadius.full,
+    marginHorizontal: spacing.base, paddingHorizontal: spacing.base, paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 15 },
+  results: { paddingHorizontal: spacing.base, paddingBottom: 40 },
+  songRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.border + '40',
+  },
+  albumArt: { width: 48, height: 48, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
+  songTitle: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 15 },
+  songArtist: { ...typography.caption, color: colors.textSecondary, fontSize: 12, marginTop: 1 },
+  songDuration: { ...typography.caption, color: colors.textMuted, fontSize: 11, marginTop: 1 },
+  requestBtn: { backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: borderRadius.full },
+  requestBtnText: { ...typography.buttonSmall, color: '#fff', fontSize: 13 },
+  requestedBtn: { backgroundColor: colors.surfaceLight, paddingHorizontal: 14, paddingVertical: 8, borderRadius: borderRadius.full },
+  requestedText: { ...typography.captionBold, color: colors.textMuted, fontSize: 12 },
+  footer: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl, fontSize: 12 },
 });

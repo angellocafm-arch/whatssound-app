@@ -1,134 +1,159 @@
 /**
- * WhatsSound — Estadísticas Post-Sesión (DJ)
- * Fetches real aggregated data from Supabase
+ * WhatsSound — DJ Stats Detalladas
+ * Referencia: 23-dj-stats.png
+ * Sesión actual, oyentes/hora (barras), top canciones, propinas, exportar
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
-import { Card } from '../../src/components/ui/Card';
-import { Button } from '../../src/components/ui/Button';
 
-if (Platform.OS === 'web') {
-  const s = document.createElement('style');
-  s.textContent = '@font-face{font-family:"Ionicons";src:url("/Ionicons.ttf") format("truetype")}';
-  if (!document.querySelector('style[data-ionicons-fix]')) { s.setAttribute('data-ionicons-fix','1'); document.head.appendChild(s); }
-}
+const HOURLY = [
+  { hour: '22:00', count: 34 },
+  { hour: '23:00', count: 89 },
+  { hour: '00:00', count: 127 },
+  { hour: '01:00', count: 89 },
+];
 
-const SUPABASE_URL = 'https://xyehncvvvprrqwnsefcr.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+const TOP_SONGS = [
+  { pos: 1, title: 'Dakiti', votes: 24 },
+  { pos: 2, title: 'Titi Me Preguntó', votes: 19 },
+  { pos: 3, title: 'Yonaguni', votes: 15 },
+  { pos: 4, title: 'Pepas', votes: 12 },
+  { pos: 5, title: 'La Noche de Anoche', votes: 9 },
+];
 
-function getHeaders() {
-  let token = '';
-  try { token = JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').access_token || ''; } catch {}
-  return { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'count=exact' };
-}
+const TIPPERS = [
+  { name: 'Laura G.', amount: '€10.00' },
+  { name: 'Carlos M.', amount: '€5.00' },
+  { name: 'Ana R.', amount: '€15.00' },
+  { name: 'Otros (4)', amount: '€17.50' },
+];
 
-function formatDuration(startIso: string): string {
-  const ms = Date.now() - new Date(startIso).getTime();
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor((ms % 3600000) / 60000);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
+const maxCount = Math.max(...HOURLY.map(h => h.count));
 
-export default function SessionStatsScreen() {
+export default function StatsScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<any>(null);
-  const [songsCount, setSongsCount] = useState(0);
-  const [messagesCount, setMessagesCount] = useState(0);
-
-  useEffect(() => {
-    if (!id) { setLoading(false); return; }
-    const h = getHeaders();
-
-    Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/sessions?id=eq.${id}&select=id,name,dj_name,created_at`, { headers: h }).then(r => r.json()),
-      fetch(`${SUPABASE_URL}/rest/v1/queue?session_id=eq.${id}&select=id`, { headers: { ...h, 'Prefer': 'count=exact' } }),
-      fetch(`${SUPABASE_URL}/rest/v1/messages?session_id=eq.${id}&select=id`, { headers: { ...h, 'Prefer': 'count=exact' } }),
-    ])
-      .then(async ([sessionData, queueRes, msgRes]) => {
-        if (sessionData?.[0]) setSession(sessionData[0]);
-        const queueCount = parseInt(queueRes.headers.get('content-range')?.split('/')[1] || '0', 10);
-        const msgCount = parseInt(msgRes.headers.get('content-range')?.split('/')[1] || '0', 10);
-        setSongsCount(queueCount);
-        setMessagesCount(msgCount);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  const sessionName = session?.name || 'Sesión';
-  const duration = session?.created_at ? formatDuration(session.created_at) : '--';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Resumen de sesión</Text>
-      <Text style={styles.subtitle}>{sessionName} · {session?.dj_name || 'DJ'}</Text>
-
-      <View style={styles.bigStats}>
-        <Card style={styles.bigStat}>
-          <Ionicons name="musical-notes" size={28} color={colors.primary} />
-          <Text style={styles.bigNum}>{songsCount}</Text>
-          <Text style={styles.bigLabel}>Canciones</Text>
-        </Card>
-        <Card style={styles.bigStat}>
-          <Ionicons name="time" size={28} color={colors.accent} />
-          <Text style={styles.bigNum}>{duration}</Text>
-          <Text style={styles.bigLabel}>Duración</Text>
-        </Card>
+    <View style={s.container}>
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Estadísticas</Text>
+        <View style={{ width: 22 }} />
       </View>
 
-      <Card style={styles.detailCard}>
-        <Text style={styles.sectionLabel}>ACTIVIDAD</Text>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Canciones en cola</Text>
-          <Text style={styles.detailValue}>{songsCount}</Text>
+      <ScrollView contentContainerStyle={s.content}>
+        {/* Session current */}
+        <View style={s.card}>
+          <Text style={s.cardLabel}>SESIÓN ACTUAL</Text>
+          <View style={s.sessionStats}>
+            <View>
+              <Text style={s.bigStat}>2h 34m</Text>
+              <Text style={s.bigStatLabel}>Duración</Text>
+            </View>
+            <View>
+              <Text style={[s.bigStat, { color: colors.primary }]}>127</Text>
+              <Text style={s.bigStatLabel}>Pico oyentes</Text>
+            </View>
+            <View>
+              <Text style={s.bigStat}>89</Text>
+              <Text style={s.bigStatLabel}>Ahora</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Mensajes en chat</Text>
-          <Text style={styles.detailValue}>{messagesCount}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Duración total</Text>
-          <Text style={styles.detailValue}>{duration}</Text>
-        </View>
-      </Card>
 
-      <View style={styles.actions}>
-        <Button title="Compartir resumen" onPress={() => {}} fullWidth icon={<Ionicons name="share-outline" size={20} color={colors.textOnPrimary} />} />
-        <Button title="Volver al inicio" onPress={() => router.replace('/')} variant="secondary" fullWidth />
-      </View>
-    </ScrollView>
+        {/* Listeners by hour */}
+        <View style={s.card}>
+          <Text style={s.cardLabel}>OYENTES POR HORA</Text>
+          {HOURLY.map((h, i) => (
+            <View key={i} style={s.barRow}>
+              <Text style={s.barHour}>{h.hour}</Text>
+              <View style={s.barTrack}>
+                <View style={[s.barFill, { width: `${(h.count / maxCount) * 100}%` }]}>
+                  <Text style={s.barCount}>{h.count}</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Top songs */}
+        <View style={s.card}>
+          <Text style={s.cardLabel}>TOP CANCIONES</Text>
+          {TOP_SONGS.map(song => (
+            <View key={song.pos} style={s.songRow}>
+              <Text style={s.songPos}>{song.pos}</Text>
+              <Text style={s.songTitle}>{song.title}</Text>
+              <View style={s.votesRow}>
+                <Ionicons name="thumbs-up" size={14} color={colors.textMuted} />
+                <Text style={s.votesText}>{song.votes}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Tips */}
+        <View style={s.card}>
+          <Text style={s.cardLabel}>PROPINAS</Text>
+          <View style={s.tipsHeader}>
+            <Text style={s.tipsTotal}>€47.50</Text>
+            <Text style={s.tipsLabel}>total recibido</Text>
+          </View>
+          {TIPPERS.map((t, i) => (
+            <View key={i} style={s.tipperRow}>
+              <Text style={s.tipperName}>{t.name}</Text>
+              <Text style={s.tipperAmount}>{t.amount}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Export */}
+        <TouchableOpacity style={s.exportBtn}>
+          <Text style={s.exportText}>📊 Exportar stats</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: spacing.base, paddingBottom: spacing['3xl'] },
-  title: { ...typography.h1, color: colors.textPrimary, textAlign: 'center', marginTop: spacing.xl },
-  subtitle: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl },
-  bigStats: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
-  bigStat: { flex: 1, alignItems: 'center', padding: spacing.xl, gap: spacing.sm },
-  bigNum: { ...typography.h1, color: colors.textPrimary, fontSize: 36 },
-  bigLabel: { ...typography.caption, color: colors.textMuted },
-  detailCard: { marginBottom: spacing.xl, padding: spacing.base },
-  sectionLabel: { ...typography.captionBold, color: colors.textMuted, letterSpacing: 0.5, marginBottom: spacing.md },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.divider },
-  detailLabel: { ...typography.body, color: colors.textSecondary },
-  detailValue: { ...typography.bodyBold, color: colors.textPrimary },
-  actions: { gap: spacing.sm },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.md },
+  headerTitle: { ...typography.h3, color: colors.textPrimary, fontSize: 18 },
+  content: { padding: spacing.base, gap: spacing.md, paddingBottom: 40 },
+  card: { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.base, borderWidth: 1, borderColor: colors.border },
+  cardLabel: { ...typography.captionBold, color: colors.textMuted, letterSpacing: 0.8, fontSize: 11, marginBottom: spacing.md },
+  sessionStats: { flexDirection: 'row', justifyContent: 'space-between' },
+  bigStat: { ...typography.h2, color: colors.textPrimary, fontSize: 22 },
+  bigStatLabel: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  barHour: { ...typography.caption, color: colors.textMuted, fontSize: 12, width: 40 },
+  barTrack: { flex: 1, height: 28, backgroundColor: colors.surfaceDark, borderRadius: borderRadius.sm },
+  barFill: { height: 28, backgroundColor: colors.primary, borderRadius: borderRadius.sm, justifyContent: 'center', paddingLeft: spacing.sm, minWidth: 50 },
+  barCount: { ...typography.captionBold, color: '#fff', fontSize: 12 },
+  songRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border + '40' },
+  songPos: { ...typography.bodyBold, color: colors.primary, fontSize: 15, width: 24 },
+  songTitle: { ...typography.bodySmall, color: colors.textPrimary, fontSize: 14, flex: 1 },
+  votesRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  votesText: { ...typography.caption, color: colors.textMuted, fontSize: 12 },
+  tipsHeader: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, marginBottom: spacing.md },
+  tipsTotal: { ...typography.h1, color: colors.primary, fontSize: 32 },
+  tipsLabel: { ...typography.bodySmall, color: colors.textMuted, fontSize: 13 },
+  tipperRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border + '40' },
+  tipperName: { ...typography.bodySmall, color: colors.textPrimary, fontSize: 14 },
+  tipperAmount: { ...typography.bodyBold, color: colors.primary, fontSize: 14 },
+  exportBtn: {
+    backgroundColor: colors.surface, borderRadius: borderRadius.lg,
+    paddingVertical: 16, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.primary,
+  },
+  exportText: { ...typography.button, color: colors.primary, fontSize: 15 },
 });

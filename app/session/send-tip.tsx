@@ -1,174 +1,164 @@
 /**
- * WhatsSound — Enviar Propina
- * Modal para enviar propina al DJ
+ * WhatsSound — Enviar Propina (Bottom Sheet style)
+ * Referencia: 26-enviar-propina.png
  */
 
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
-import { Button } from '../../src/components/ui/Button';
-import { Input } from '../../src/components/ui/Input';
-import { Avatar } from '../../src/components/ui/Avatar';
-import { supabase } from '../../src/lib/supabase';
 
 const AMOUNTS = [1, 2, 5, 10];
+const { height: SCREEN_H } = Dimensions.get('window');
 
 export default function SendTipScreen() {
   const router = useRouter();
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [customAmount, setCustomAmount] = useState('');
+  const [selected, setSelected] = useState<number | null>(5);
+  const [custom, setCustom] = useState('');
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const amount = selectedAmount || Number(customAmount) || 0;
-
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const sessionId = id || '';
-
-  const handleSend = async () => {
-    if (amount <= 0) return;
-    setLoading(true);
-    const { data: { session: _s } } = await supabase.auth.getSession(); const user = _s?.user;
-    if (user) {
-      await supabase.from('tips').insert({
-        session_id: sessionId,
-        from_user: user.id,
-        amount,
-        message: message || null,
-      });
-    }
-    setLoading(false);
-    setSent(true);
-  };
+  const amount = custom ? Number(custom) : (selected || 0);
 
   if (sent) {
     return (
-      <View style={styles.container}>
-        <View style={styles.successContainer}>
-          <View style={styles.successIcon}>
-            <Ionicons name="checkmark-circle" size={64} color={colors.primary} />
-          </View>
-          <Text style={styles.successTitle}>¡Propina enviada!</Text>
-          <Text style={styles.successAmount}>€{amount}</Text>
-          <Text style={styles.successSubtitle}>DJ Marcos te lo agradece 🙌</Text>
-          <Button title="Volver a la sesión" onPress={() => router.back()} variant="secondary" size="lg" />
+      <View style={s.container}>
+        <View style={s.overlay} />
+        <View style={s.successSheet}>
+          <Ionicons name="checkmark-circle" size={64} color={colors.primary} />
+          <Text style={s.successTitle}>¡Propina enviada!</Text>
+          <Text style={s.successAmount}>€{amount}</Text>
+          <Text style={s.successSub}>DJ Carlos Madrid te lo agradece 🙌</Text>
+          <TouchableOpacity style={s.sendBtn} onPress={() => router.back()}>
+            <Text style={s.sendBtnText}>Volver a la sesión</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={24} color={colors.textPrimary} />
+    <View style={s.container}>
+      {/* Overlay oscuro - tap para cerrar */}
+      <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => router.back()} />
+
+      {/* Bottom Sheet */}
+      <View style={s.sheet}>
+        {/* Handle */}
+        <View style={s.handle} />
+
+        {/* Title */}
+        <Text style={s.title}>Propina para DJ Carlos Madrid 🎧</Text>
+        <Text style={s.subtitle}>Apoya al DJ con una propina</Text>
+
+        {/* Amount pills */}
+        <View style={s.amountsRow}>
+          {AMOUNTS.map(amt => (
+            <TouchableOpacity
+              key={amt}
+              style={[s.pill, selected === amt && !custom && s.pillSelected]}
+              onPress={() => { setSelected(amt); setCustom(''); }}
+            >
+              <Text style={[s.pillText, selected === amt && !custom && s.pillTextSelected]}>€{amt}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Otro */}
+        <TouchableOpacity
+          style={[s.pill, s.pillOtro, custom ? s.pillSelected : {}]}
+          onPress={() => { setSelected(null); setCustom(''); }}
+        >
+          <Text style={[s.pillText, custom ? s.pillTextSelected : {}]}>Otro</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Enviar propina</Text>
-        <View style={{ width: 24 }} />
+
+        {custom !== '' || (!selected) ? (
+          <TextInput
+            style={s.customInput}
+            placeholder="€0.00"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="numeric"
+            value={custom}
+            onChangeText={(t) => { setCustom(t); setSelected(null); }}
+            autoFocus
+          />
+        ) : null}
+
+        {/* Message */}
+        <TextInput
+          style={s.messageInput}
+          placeholder="¡Gran sesión!"
+          placeholderTextColor={colors.textMuted}
+          value={message}
+          onChangeText={setMessage}
+          maxLength={100}
+        />
+
+        {/* Note */}
+        <Text style={s.note}>Tu propina sube tu canción en la cola ⬆️</Text>
+
+        {/* Send button */}
+        <TouchableOpacity
+          style={[s.sendBtn, amount <= 0 && { opacity: 0.4 }]}
+          onPress={() => amount > 0 && setSent(true)}
+          disabled={amount <= 0}
+        >
+          <Text style={s.sendBtnText}>Enviar propina · €{amount}</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* DJ info */}
-      <View style={styles.djInfo}>
-        <Avatar name="DJ Marcos" size="lg" />
-        <Text style={styles.djName}>DJ Marcos</Text>
-        <Text style={styles.djSession}>Viernes Latino 🔥</Text>
-      </View>
-
-      {/* Amount selection */}
-      <Text style={styles.sectionLabel}>ELIGE UNA CANTIDAD</Text>
-      <View style={styles.amountsRow}>
-        {AMOUNTS.map(amt => (
-          <TouchableOpacity
-            key={amt}
-            style={[styles.amountBtn, selectedAmount === amt && styles.amountBtnSelected]}
-            onPress={() => { setSelectedAmount(amt); setCustomAmount(''); }}
-          >
-            <Text style={[styles.amountText, selectedAmount === amt && styles.amountTextSelected]}>
-              €{amt}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Custom amount */}
-      <Input
-        label="O escribe otra cantidad"
-        placeholder="€0.00"
-        keyboardType="numeric"
-        value={customAmount}
-        onChangeText={(t) => { setCustomAmount(t); setSelectedAmount(null); }}
-      />
-
-      {/* Message */}
-      <Input
-        label="Mensaje (opcional)"
-        placeholder="¡Sube mi canción en la cola! 🎶"
-        value={message}
-        onChangeText={setMessage}
-        maxLength={100}
-      />
-
-      {/* Note */}
-      <View style={styles.note}>
-        <Ionicons name="information-circle" size={16} color={colors.accent} />
-        <Text style={styles.noteText}>
-          Las propinas con mensaje suben tu canción en la cola
-        </Text>
-      </View>
-
-      {/* Send button */}
-      <Button
-        title={amount > 0 ? `Enviar €${amount}` : 'Selecciona una cantidad'}
-        onPress={handleSend}
-        fullWidth
-        size="lg"
-        loading={loading}
-        disabled={amount <= 0}
-      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: spacing.md,
+const s = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: spacing.xl,
+    paddingBottom: 40,
+    gap: spacing.md,
   },
-  headerTitle: { ...typography.h3, color: colors.textPrimary },
-  djInfo: { alignItems: 'center', gap: spacing.sm, marginVertical: spacing.xl },
-  djName: { ...typography.h3, color: colors.textPrimary },
-  djSession: { ...typography.body, color: colors.textSecondary },
-  sectionLabel: { ...typography.captionBold, color: colors.textSecondary, letterSpacing: 0.5, marginBottom: spacing.sm },
-  amountsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
-  amountBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: spacing.md,
-    backgroundColor: colors.surface, borderRadius: borderRadius.lg,
-    borderWidth: 1.5, borderColor: colors.border,
+  handle: { width: 40, height: 4, backgroundColor: colors.borderLight, borderRadius: 2, alignSelf: 'center', marginBottom: spacing.sm },
+  title: { ...typography.h3, color: colors.textPrimary, fontSize: 18 },
+  subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: -8 },
+  amountsRow: { flexDirection: 'row', gap: spacing.sm },
+  pill: {
+    flex: 1, alignItems: 'center', paddingVertical: 12,
+    backgroundColor: colors.surfaceLight, borderRadius: borderRadius.full,
+    borderWidth: 1.5, borderColor: 'transparent',
   },
-  amountBtnSelected: { backgroundColor: colors.primary + '20', borderColor: colors.primary },
-  amountText: { ...typography.h3, color: colors.textSecondary },
-  amountTextSelected: { color: colors.primary },
-  note: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.accent + '10', padding: spacing.md,
-    borderRadius: borderRadius.lg, marginBottom: spacing.xl,
+  pillSelected: { borderColor: colors.primary, backgroundColor: colors.primary + '15' },
+  pillText: { ...typography.bodyBold, color: colors.textSecondary, fontSize: 15 },
+  pillTextSelected: { color: colors.primary },
+  pillOtro: { alignSelf: 'flex-start', paddingHorizontal: 24, flex: 0 },
+  customInput: {
+    backgroundColor: colors.surfaceDark, borderRadius: borderRadius.lg,
+    padding: spacing.md, color: colors.textPrimary, fontSize: 18,
+    textAlign: 'center', borderWidth: 1, borderColor: colors.border,
   },
-  noteText: { ...typography.bodySmall, color: colors.accent, flex: 1 },
-  successContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
-  successIcon: { marginBottom: spacing.md },
+  messageInput: {
+    backgroundColor: colors.surfaceDark, borderRadius: borderRadius.lg,
+    padding: spacing.md, color: colors.textPrimary, fontSize: 15,
+  },
+  note: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
+  sendBtn: {
+    backgroundColor: colors.primary, borderRadius: borderRadius.lg,
+    paddingVertical: 16, alignItems: 'center',
+  },
+  sendBtnText: { ...typography.button, color: '#fff', fontSize: 16 },
+  successSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: spacing.xl, paddingVertical: 60,
+    alignItems: 'center', gap: spacing.md,
+  },
   successTitle: { ...typography.h2, color: colors.textPrimary },
   successAmount: { ...typography.h1, color: colors.primary, fontSize: 48 },
-  successSubtitle: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xl },
+  successSub: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.lg },
 });
