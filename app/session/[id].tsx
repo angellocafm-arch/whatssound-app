@@ -163,7 +163,7 @@ export default function SessionScreen() {
 
   // ── PLAYER ──
   const Player = () => (
-    <ScrollView style={{flex:1}} contentContainerStyle={{alignItems:'center',paddingBottom:spacing['3xl'],paddingTop:spacing.lg}}>
+    <ScrollView style={{flex:1}} contentContainerStyle={{alignItems:'center',paddingBottom:spacing['3xl'],paddingTop:spacing.sm}}>
       {/* Art */}
       <View style={s.artWrap}>
         <View style={[s.artImg, {backgroundColor: colors.primary + '33', justifyContent:'center', alignItems:'center'}]}>
@@ -374,7 +374,7 @@ const s = StyleSheet.create({
   roleBadgeText: { fontSize:10, fontWeight:'700' },
 
   // Player
-  artWrap: { width:SCREEN_WIDTH*0.45, height:SCREEN_WIDTH*0.45, borderRadius:borderRadius.xl, overflow:'hidden', marginBottom:spacing.lg, shadowColor:colors.primary, shadowOffset:{width:0,height:8}, shadowOpacity:0.4, shadowRadius:24, elevation:16 },
+  artWrap: { width:200, height:200, borderRadius:borderRadius.xl, overflow:'hidden', marginBottom:spacing.md, shadowColor:colors.primary, shadowOffset:{width:0,height:8}, shadowOpacity:0.4, shadowRadius:24, elevation:16 },
   artImg: { width:'100%', height:'100%' },
   artGlow: { position:'absolute', bottom:0, left:0, right:0, height:60, backgroundColor:colors.background, opacity:0.3 },
   pTitle: { ...typography.h1, color:colors.textPrimary, textAlign:'center' },
