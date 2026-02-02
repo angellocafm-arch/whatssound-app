@@ -13,6 +13,7 @@ import {
   Image,
   Animated,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -240,6 +241,76 @@ export default function DJPanelScreen() {
             <Text style={styles.chatTime}>{msg.time}</Text>
           </View>
         ))}
+      </View>
+
+      {/* ── Connected Users ── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>👥 Conectados ahora</Text>
+        <Text style={[styles.seeAllText, {color: colors.primary}]}>45 online</Text>
+      </View>
+      <View style={styles.connectedCard}>
+        {[
+          {name:'María García', status:'Escuchando Pepas 🎵', online:true, avatar:'MG', color:'#ff6b9d'},
+          {name:'Pablo Rodríguez', status:'Votando en la cola', online:true, avatar:'PR', color:'#c084fc'},
+          {name:'Ana López ⭐', status:'Chateando', online:true, avatar:'AL', color:'#34d399'},
+          {name:'Sofía Torres', status:'Acaba de unirse', online:true, avatar:'ST', color:'#fb923c'},
+          {name:'Diego Fernández', status:'Escuchando', online:true, avatar:'DF', color:'#22d3ee'},
+        ].map((u, i) => (
+          <View key={i} style={styles.connUser}>
+            <View style={[styles.connAvatar, {backgroundColor: u.color + '30'}]}>
+              <Text style={{color: u.color, fontSize:12, fontWeight:'700'}}>{u.avatar}</Text>
+              <View style={styles.connOnline}/>
+            </View>
+            <View style={{flex:1}}>
+              <Text style={styles.connName}>{u.name}</Text>
+              <Text style={styles.connStatus}>{u.status}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* ── AI Assistant ── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>🤖 Asistente IA</Text>
+        <View style={{flexDirection:'row',alignItems:'center',gap:4}}>
+          <View style={{width:6,height:6,borderRadius:3,backgroundColor:colors.primary}}/>
+          <Text style={{color:colors.primary,fontSize:12}}>Activo</Text>
+        </View>
+      </View>
+      <View style={styles.aiCard}>
+        <View style={styles.aiMsg}>
+          <View style={styles.aiAvatar}>
+            <Ionicons name="sparkles" size={16} color={colors.primary}/>
+          </View>
+          <View style={styles.aiBubble}>
+            <Text style={styles.aiText}>He detectado que el público pide mucho reggaetón clásico. Te sugiero poner "Gasolina" a continuación — tiene 18 votos y la gente está muy activa.</Text>
+            <Text style={styles.aiTime}>hace 2m</Text>
+          </View>
+        </View>
+        <View style={styles.aiMsg}>
+          <View style={styles.aiAvatar}>
+            <Ionicons name="sparkles" size={16} color={colors.primary}/>
+          </View>
+          <View style={styles.aiBubble}>
+            <Text style={styles.aiText}>📊 El engagement ha subido un 34% en los últimos 10 minutos. El pico fue con "Pepas" — 12 reacciones en 30 segundos.</Text>
+            <Text style={styles.aiTime}>hace 5m</Text>
+          </View>
+        </View>
+        <View style={styles.aiMsg}>
+          <View style={styles.aiAvatar}>
+            <Ionicons name="sparkles" size={16} color={colors.primary}/>
+          </View>
+          <View style={styles.aiBubble}>
+            <Text style={styles.aiText}>⚠️ Mensaje reportado de "Javi R." — contenido revisado, todo OK. No requiere acción.</Text>
+            <Text style={styles.aiTime}>hace 8m</Text>
+          </View>
+        </View>
+        <View style={styles.aiInputRow}>
+          <TextInput style={styles.aiInput} placeholder="Pregunta a la IA..." placeholderTextColor={colors.textMuted}/>
+          <TouchableOpacity style={styles.aiSendBtn}>
+            <Ionicons name="send" size={18} color={colors.textOnPrimary}/>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Quick Actions ── */}
@@ -592,4 +663,83 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   endText: { ...typography.bodyBold, color: colors.error, fontSize: 14 },
+
+  // Connected Users
+  connectedCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.sm,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.sm,
+  },
+  connUser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  connAvatar: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  connOnline: {
+    position: 'absolute', bottom: -1, right: -1,
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: colors.primary,
+    borderWidth: 2, borderColor: colors.surface,
+  },
+  connName: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 13 },
+  connStatus: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
+
+  // AI Chat
+  aiCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.sm,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    gap: spacing.sm,
+  },
+  aiMsg: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  aiAvatar: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  aiBubble: {
+    flex: 1,
+    backgroundColor: colors.primary + '10',
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+  },
+  aiText: { ...typography.bodySmall, color: colors.textPrimary, fontSize: 13, lineHeight: 18 },
+  aiTime: { ...typography.caption, color: colors.textMuted, fontSize: 10, marginTop: 4 },
+  aiInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  aiInput: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.textPrimary,
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  aiSendBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
 });

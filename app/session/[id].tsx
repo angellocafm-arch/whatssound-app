@@ -98,12 +98,32 @@ const RoleBadge = ({ role }: { role: 'dj'|'vip'|'mod' }) => {
 
 // ══════════ MAIN SCREEN ══════════
 
+const USER_PROFILES: Record<string, {name:string, msgs: {text:string,time:string}[]}> = {
+  maria: { name: 'María García', msgs: [
+    {text:'🔥🔥🔥 Vamos!!!', time:'22:16'},
+    {text:'¿Alguien más bailando en casa? 💃🕺', time:'22:25'},
+  ]},
+  pablo: { name: 'Pablo Rodríguez', msgs: [
+    {text:'Ponme reggaetón viejo porfa!!', time:'22:17'},
+    {text:'Gasolina next pls 🙏', time:'22:26'},
+  ]},
+};
+
 export default function SessionScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, user } = useLocalSearchParams<{ id: string; user?: string }>();
   const router = useRouter();
+  const userProfile = user ? USER_PROFILES[user] : null;
+  const userName = userProfile?.name || 'Tú';
   const [tab, setTab] = useState<TabKey>('player');
   const [msg, setMsg] = useState('');
-  const [msgs, setMsgs] = useState<ChatMsg[]>(CHAT);
+  const [msgs, setMsgs] = useState<ChatMsg[]>(() => {
+    if (!userProfile) return CHAT;
+    return CHAT.map(m => {
+      if (userProfile.msgs.some(um => um.text === m.text)) return {...m, user: userName, isMine: true};
+      if (m.isMine) return {...m, user: 'Invitado', isMine: false};
+      return m;
+    });
+  });
   const [progress, setProgress] = useState(NOW.currentTime / NOW.duration);
   const [playing, setPlaying] = useState(true);
   const [voted, setVoted] = useState<Set<string>>(new Set());
@@ -136,7 +156,7 @@ export default function SessionScreen() {
 
   const send = () => {
     if (!msg.trim()) return;
-    setMsgs(p => [...p, { id:`c${Date.now()}`, user:'Tú', text:msg.trim(), time: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), isMine:true }]);
+    setMsgs(p => [...p, { id:`c${Date.now()}`, user:userName, text:msg.trim(), time: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), isMine:true }]);
     setMsg('');
     setTimeout(() => listRef.current?.scrollToEnd({ animated:true }), 100);
   };
