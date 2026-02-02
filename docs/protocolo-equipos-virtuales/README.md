@@ -37,6 +37,9 @@ Cómo organizar reuniones por área de expertise y la gran reunión plenaria par
 ### 🔨 **04-DESARROLLO.md** — Fase 4: Desarrollo del MVP
 Metodología de desarrollo iterativo con feedback continuo del director. Todo documentado y probado.
 
+### ⚡ **04B-EJECUCION-TECNICA.md** — Fase 4B: Protocolo de Ejecución Técnica
+El ciclo detallado de picar código → desplegar → verificar en producción → siguiente pantalla. Incluye: cómo cargar la referencia visual, picar siguiendo el design system, agrupar deploys, verificar visualmente, gestionar datos mock, reportar al director, y gestionar la memoria de la IA entre sesiones.
+
 ### ✅ **05-CIERRE-VERSION.md** — Fase 5: Cierre y Entrega
 Cómo cerrar una versión estable, documentarla completamente y subirla/entregarla según el tipo de proyecto.
 
