@@ -311,8 +311,8 @@ const s = StyleSheet.create({
   sectionAction: { ...typography.captionBold, color: colors.primary, fontSize: 12 },
 
   // Stats Grid
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  statCard: { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.md, minWidth: isWide ? 140 : (SW - 48) / 2 - 4, flex: isWide ? undefined : 1, borderWidth: 1, borderColor: colors.border, gap: 4 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, ...(Platform.OS === 'web' ? { display: 'grid' as any, gridTemplateColumns: isWide ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)' } : {}) },
+  statCard: { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border, gap: 4 },
   statIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   statValue: { ...typography.h2, color: colors.textPrimary, fontSize: 22 },
   statLabel: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
@@ -353,8 +353,8 @@ const s = StyleSheet.create({
   aiSendBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
 
   // Highlights
-  highlightsRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  highlightCard: { flex: 1, minWidth: isWide ? 140 : (SW - 48) / 2 - 4, backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  highlightsRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', ...(Platform.OS === 'web' ? { display: 'grid' as any, gridTemplateColumns: isWide ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)' } : {}) },
+  highlightCard: { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   highlightEmoji: { fontSize: 28, marginBottom: 4 },
   highlightValue: { ...typography.h3, color: colors.textPrimary, fontSize: 18 },
   highlightLabel: { ...typography.caption, color: colors.textMuted, fontSize: 11, textAlign: 'center' },
