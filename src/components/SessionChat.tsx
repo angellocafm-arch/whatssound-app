@@ -1,5 +1,6 @@
 /**
- * SessionChat — Chat message list with bubbles, system messages, and song cards
+ * SessionChat — WhatsApp-style chat with role badges (DJ, VIP, Mod)
+ * Burbujas con colores del design system
  */
 import React from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
@@ -19,6 +20,7 @@ export interface ChatMessage {
   isMine: boolean;
   time: string;
   fromDB?: boolean;
+  role?: 'dj' | 'vip' | 'mod';
 }
 
 // WhatsApp-style user colors
@@ -37,6 +39,20 @@ function getUserColor(userId: string): string {
   return userColorMap.get(userId)!;
 }
 
+// Role Badge component
+const RoleBadge = ({ role }: { role: 'dj' | 'vip' | 'mod' }) => {
+  const config = {
+    dj: { label: '🎧 DJ', bg: colors.primary + '30', color: colors.primary },
+    vip: { label: '⭐ VIP', bg: '#FFA72630', color: '#FFA726' },
+    mod: { label: '🛡️ MOD', bg: colors.accent + '30', color: colors.accent },
+  }[role];
+  return (
+    <View style={[styles.roleBadge, { backgroundColor: config.bg }]}>
+      <Text style={[styles.roleBadgeText, { color: config.color }]}>{config.label}</Text>
+    </View>
+  );
+};
+
 const MessageBubble = ({ message, onVoteSong }: { message: ChatMessage; onVoteSong: (id: string, vote: 'up' | 'down') => void }) => {
   if (message.isSystem) {
     const songData = parseSongCard(message.text);
@@ -50,6 +66,8 @@ const MessageBubble = ({ message, onVoteSong }: { message: ChatMessage; onVoteSo
     );
   }
 
+  const role = message.role || (message.isDJ ? 'dj' : undefined);
+
   return (
     <View style={[styles.bubbleRow, message.isMine ? styles.bubbleRowMine : styles.bubbleRowOther]}>
       <View style={[
@@ -59,7 +77,10 @@ const MessageBubble = ({ message, onVoteSong }: { message: ChatMessage; onVoteSo
           : [styles.bubbleOther, { borderLeftColor: getUserColor(message.userId) }],
       ]}>
         {!message.isMine && (
-          <Text style={[styles.userName, { color: getUserColor(message.userId) }]}>{message.user}</Text>
+          <View style={styles.bubbleHeader}>
+            <Text style={[styles.userName, { color: getUserColor(message.userId) }]}>{message.user}</Text>
+            {role && <RoleBadge role={role} />}
+          </View>
         )}
         <Text style={styles.messageText}>{message.text}</Text>
         <Text style={[styles.messageTime, message.isMine && styles.messageTimeMine]}>{message.time}</Text>
@@ -134,21 +155,36 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   bubbleMine: {
-    backgroundColor: '#005c4b',
+    backgroundColor: colors.bubbleOwn,
     borderTopRightRadius: 4,
     borderRightWidth: 3,
-    borderRightColor: '#25d366',
+    borderRightColor: colors.primary,
   },
   bubbleOther: {
-    backgroundColor: '#1f2c34',
+    backgroundColor: colors.bubbleOther,
     borderTopLeftRadius: 4,
     borderLeftWidth: 3,
-    borderLeftColor: '#53bdeb',
+    borderLeftColor: colors.accent,
   },
-  userName: { ...typography.captionBold, color: '#53bdeb', marginBottom: 2 },
+  bubbleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  userName: { ...typography.captionBold, color: '#53bdeb', fontSize: 12 },
   messageTime: { ...typography.caption, color: 'rgba(255,255,255,0.5)', fontSize: 10, alignSelf: 'flex-end', marginTop: 2 },
   messageTimeMine: { color: 'rgba(255,255,255,0.6)' },
   messageText: { ...typography.body, color: '#e9edef', fontSize: 15 },
+  roleBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: borderRadius.full,
+  },
+  roleBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+  },
   centerState: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing['3xl'], gap: spacing.sm },
   stateTitle: { ...typography.h3, color: colors.textPrimary },
   stateText: { ...typography.bodySmall, color: colors.textMuted, textAlign: 'center' },

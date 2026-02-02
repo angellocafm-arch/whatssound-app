@@ -1,409 +1,595 @@
 /**
- * WhatsSound — Panel DJ
- * Dashboard del DJ con ranking de votos reales
+ * WhatsSound — Panel DJ (Dashboard Principal)
+ * Vista profesional para inversores — datos mock para demo
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Image,
-  Platform,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
-// Ensure Ionicons font is loaded on web
-if (Platform.OS === 'web') {
-  const style = document.createElement('style');
-  style.textContent = `@font-face { font-family: "Ionicons"; src: url("/Ionicons.ttf") format("truetype"); }`;
-  if (!document.querySelector('style[data-ionicons-dj]')) {
-    style.setAttribute('data-ionicons-dj', '1');
-    document.head.appendChild(style);
-  }
-}
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 
-const SUPABASE_URL = 'https://xyehncvvvprrqwnsefcr.supabase.co';
-const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-function getHeaders() {
-  let token = '';
-  try { token = JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').access_token || ''; } catch {}
-  return {
-    'apikey': API_KEY,
-    'Authorization': `Bearer ${token || API_KEY}`,
-    'Content-Type': 'application/json',
-  };
-}
+// ─── Mock Data ───────────────────────────────────────────────
+const CURRENT_SONG = {
+  title: 'Pepas',
+  artist: 'Farruko',
+  album: 'LA 167',
+  albumArt: 'https://i.scdn.co/image/ab67616d0000b273a0e9b4f42cf8e1fdabe43c4b',
+  duration: '4:15',
+  elapsed: '2:47',
+  progress: 0.65,
+};
 
-interface QueueItem {
-  id: string;
-  song_name: string;
-  artist: string;
-  votes: number;
-  status: string;
-  created_at: string;
-}
+const CHAT_MESSAGES = [
+  { id: '1', user: 'María G.', text: '🔥🔥🔥 Qué temazo!!', time: 'hace 1m', avatar: '👩‍🦰' },
+  { id: '2', user: 'Javi R.', text: 'DJ pon reggaeton viejo porfa', time: 'hace 2m', avatar: '🧔' },
+  { id: '3', user: 'Laura S.', text: 'Increíble sesión Carlos!! 💃', time: 'hace 3m', avatar: '👱‍♀️' },
+];
 
-interface SongMessage {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-}
+const NEXT_SONGS = [
+  { title: 'Gasolina', artist: 'Daddy Yankee', votes: 18, requester: 'Pablo M.' },
+  { title: 'Dákiti', artist: 'Bad Bunny', votes: 14, requester: 'Ana L.' },
+  { title: 'La Bicicleta', artist: 'Shakira & Carlos Vives', votes: 11, requester: 'Lucía F.' },
+];
 
-interface ParsedSong {
-  title: string;
-  artist: string;
-  album: string;
-  albumArt?: string;
-  duration?: string;
-  votes: number;
-  queueId?: string;
-  messageId: string;
-}
-
-export default function DJPanelScreen() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<any>(null);
-  const [songs, setSongs] = useState<ParsedSong[]>([]);
-  const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
-  const [stats, setStats] = useState({ listeners: 0, totalVotes: 0, duration: '' });
-
-  // Get session ID from URL params
-  const getSessionId = () => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('id') || params.get('sid') || '';
-    } catch {}
-    return '';
-  };
+// ─── Pulsing Dot Component ──────────────────────────────────
+const PulsingDot = () => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    loadDashboard();
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(scale, { toValue: 1.8, duration: 800, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0, duration: 800, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(scale, { toValue: 1, duration: 0, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 1, duration: 0, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
   }, []);
 
-  const loadDashboard = async () => {
-    setLoading(true);
-    const h = getHeaders();
-    let userId = '';
-    try { userId = JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').user?.id || ''; } catch {}
+  return (
+    <View style={styles.pulseContainer}>
+      <Animated.View style={[styles.pulseRing, { transform: [{ scale }], opacity }]} />
+      <View style={styles.liveDot} />
+    </View>
+  );
+};
 
-    // Get session ID from URL params first, then fallback to DJ's active session
-    let sid = getSessionId();
-    if (sid) {
-      try {
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/sessions?id=eq.${sid}&limit=1`, { headers: h });
-        const sessions = await r.json();
-        if (sessions.length > 0) setSession(sessions[0]);
-      } catch {}
-    } else {
-      try {
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/sessions?dj_id=eq.${userId}&status=eq.live&order=started_at.desc&limit=1`, { headers: h });
-        const sessions = await r.json();
-        if (sessions.length > 0) { sid = sessions[0].id; setSession(sessions[0]); }
-      } catch {}
-    }
+// ─── Stat Card ──────────────────────────────────────────────
+const StatCard = ({ icon, iconColor, value, label }: {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  value: string;
+  label: string;
+}) => (
+  <View style={styles.statCard}>
+    <View style={[styles.statIconBg, { backgroundColor: iconColor + '18' }]}>
+      <Ionicons name={icon} size={18} color={iconColor} />
+    </View>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
 
-    if (!sid) {
-      try {
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/sessions?status=eq.live&order=started_at.desc&limit=1`, { headers: h });
-        const sessions = await r.json();
-        if (sessions.length > 0) { sid = sessions[0].id; setSession(sessions[0]); }
-      } catch {}
-    }
+// ─── Main Component ─────────────────────────────────────────
+export default function DJPanelScreen() {
+  const router = useRouter();
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [autoDJ, setAutoDJ] = useState(true);
+  const [volume, setVolume] = useState(78);
+  const progressAnim = useRef(new Animated.Value(CURRENT_SONG.progress)).current;
 
-    if (!sid) { setLoading(false); return; }
-
-    // Fetch queue items (ranked by votes)
-    try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/queue?session_id=eq.${sid}&order=votes.desc`, { headers: h });
-      const items = await r.json();
-      if (Array.isArray(items)) setQueueItems(items);
-    } catch {}
-
-    // Fetch song messages for album art info
-    try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/messages?session_id=eq.${sid}&is_system=eq.true&order=created_at.asc`, { headers: h });
-      const msgs = await r.json();
-      if (Array.isArray(msgs)) {
-        const parsed: ParsedSong[] = [];
-        for (const msg of msgs) {
-          try {
-            const data = JSON.parse(msg.content);
-            if (data.type === 'song') {
-              // Match with queue item
-              const qi = queueItems.find(q => q.song_name === data.title && q.artist === data.artist);
-              parsed.push({
-                title: data.title,
-                artist: data.artist,
-                album: data.album,
-                albumArt: data.albumArt,
-                duration: data.duration,
-                votes: qi?.votes || 0,
-                queueId: data.queueId || qi?.id,
-                messageId: msg.id,
-              });
-            }
-          } catch {}
-        }
-        // Update votes from queue
-        for (const s of parsed) {
-          const qi = queueItems.find(q => q.id === s.queueId || (q.song_name === s.title && q.artist === s.artist));
-          if (qi) s.votes = qi.votes;
-        }
-        // Sort by votes (highest first)
-        parsed.sort((a, b) => b.votes - a.votes);
-        setSongs(parsed);
-      }
-    } catch {}
-
-    // Stats
-    const totalVotes = queueItems.reduce((sum, q) => sum + (q.votes || 0), 0);
-    const startTime = session?.started_at ? new Date(session.started_at).getTime() : Date.now();
-    const mins = Math.round((Date.now() - startTime) / 60000);
-    setStats({
-      listeners: session?.listener_count || 0,
-      totalVotes,
-      duration: mins > 0 ? `${mins}m` : '<1m',
-    });
-
-    setLoading(false);
-  };
-
-  // Re-fetch with queue loaded
+  // Simulate progress
   useEffect(() => {
-    if (queueItems.length > 0 && songs.length === 0) {
-      loadDashboard();
-    }
-  }, [queueItems]);
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.stateText}>Cargando panel DJ...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  const totalVotes = songs.reduce((sum, s) => sum + s.votes, 0);
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      progressAnim.setValue(Math.min(1, CURRENT_SONG.progress + Math.random() * 0.01));
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* ── Header ── */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Panel DJ</Text>
-        <View style={styles.liveBadge}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>EN VIVO</Text>
-        </View>
-      </View>
-
-      {/* Session info */}
-      {session && (
-        <Text style={styles.sessionName}>{session.name} · {session.genre}</Text>
-      )}
-
-      {/* Stats bar */}
-      <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <Ionicons name="people" size={18} color={colors.primary} />
-          <Text style={styles.statValue}>{stats.listeners}</Text>
-          <Text style={styles.statLabel}>oyentes</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Ionicons name="flame" size={18} color="#ff6b00" />
-          <Text style={styles.statValue}>{totalVotes}</Text>
-          <Text style={styles.statLabel}>votos</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Ionicons name="musical-notes" size={18} color={colors.accent} />
-          <Text style={styles.statValue}>{songs.length}</Text>
-          <Text style={styles.statLabel}>canciones</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Ionicons name="time" size={18} color={colors.warning} />
-          <Text style={styles.statValue}>{stats.duration}</Text>
-          <Text style={styles.statLabel}>activo</Text>
-        </View>
-      </View>
-
-      {/* Ranking header */}
-      <View style={styles.rankingHeader}>
-        <Text style={styles.sectionTitle}>🏆 RANKING DE CANCIONES</Text>
-        <TouchableOpacity onPress={loadDashboard}>
-          <Ionicons name="refresh" size={20} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Song ranking */}
-      {songs.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="musical-notes-outline" size={48} color={colors.textMuted} />
-          <Text style={styles.emptyTitle}>Sin canciones aún</Text>
-          <Text style={styles.emptySubtitle}>Las canciones que añadas aparecerán aquí con sus votos</Text>
-        </View>
-      ) : (
-        songs.map((song, i) => (
-          <View key={song.messageId} style={[styles.rankCard, i === 0 && styles.rankCardFirst]}>
-            {/* Rank number */}
-            <View style={[styles.rankBadge, i === 0 && styles.rankBadgeGold, i === 1 && styles.rankBadgeSilver, i === 2 && styles.rankBadgeBronze]}>
-              <Text style={[styles.rankNumber, i < 3 && styles.rankNumberTop]}>{i + 1}</Text>
-            </View>
-
-            {/* Album art */}
-            {song.albumArt ? (
-              <Image source={{ uri: song.albumArt }} style={styles.rankArt} />
-            ) : (
-              <View style={styles.rankArtPlaceholder}>
-                <Ionicons name="musical-note" size={18} color={colors.primary} />
-              </View>
-            )}
-
-            {/* Song info */}
-            <View style={styles.rankInfo}>
-              <Text style={styles.rankTitle} numberOfLines={1}>{song.title}</Text>
-              <Text style={styles.rankArtist} numberOfLines={1}>{song.artist} · {song.duration}</Text>
-            </View>
-
-            {/* Votes */}
-            <View style={[styles.voteDisplay, song.votes > 0 && styles.voteDisplayActive]}>
-              <Text style={styles.voteEmoji}>🔥</Text>
-              <Text style={[styles.voteCount, song.votes > 0 && styles.voteCountActive]}>{song.votes}</Text>
-            </View>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Panel DJ</Text>
+          <View style={styles.liveBadge}>
+            <PulsingDot />
+            <Text style={styles.liveText}>EN VIVO</Text>
           </View>
-        ))
-      )}
-
-      {/* Quick actions */}
-      <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => session && router.push(`/session/${session.id}`)}>
-          <Ionicons name="chatbubbles" size={22} color={colors.primary} />
-          <Text style={styles.actionText}>Chat</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => session && router.push(`/session/request-song?sid=${session.id}`)}>
-          <Ionicons name="add-circle" size={22} color={colors.primary} />
-          <Text style={styles.actionText}>Añadir</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Ionicons name="qr-code" size={22} color={colors.primary} />
-          <Text style={styles.actionText}>QR</Text>
+        </View>
+        <TouchableOpacity onPress={() => {}} style={styles.settingsBtn}>
+          <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
-      {/* End session */}
+      {/* ── Session Info ── */}
+      <View style={styles.sessionBar}>
+        <Text style={styles.sessionName}>Viernes Latino 🔥</Text>
+        <Text style={styles.sessionGenre}>Reggaetón clásico</Text>
+      </View>
+
+      {/* ── Stats Grid ── */}
+      <View style={styles.statsGrid}>
+        <StatCard icon="people" iconColor={colors.primary} value="45" label="Listeners" />
+        <StatCard icon="musical-notes" iconColor={colors.accent} value="12" label="Canciones" />
+        <StatCard icon="cash" iconColor={colors.warning} value="€23.50" label="Tips" />
+        <StatCard icon="time" iconColor="#A78BFA" value="1h 23m" label="Activo" />
+      </View>
+
+      {/* ── Now Playing ── */}
+      <View style={styles.nowPlayingCard}>
+        <Text style={styles.sectionLabel}>SONANDO AHORA</Text>
+        <View style={styles.nowPlayingContent}>
+          <Image source={{ uri: CURRENT_SONG.albumArt }} style={styles.albumArt} />
+          <View style={styles.songDetails}>
+            <Text style={styles.songTitle} numberOfLines={1}>{CURRENT_SONG.title}</Text>
+            <Text style={styles.songArtist} numberOfLines={1}>{CURRENT_SONG.artist}</Text>
+            <Text style={styles.songAlbum} numberOfLines={1}>{CURRENT_SONG.album}</Text>
+          </View>
+        </View>
+
+        {/* Progress bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressTrack}>
+            <Animated.View
+              style={[
+                styles.progressFill,
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            />
+          </View>
+          <View style={styles.timeRow}>
+            <Text style={styles.timeText}>{CURRENT_SONG.elapsed}</Text>
+            <Text style={styles.timeText}>{CURRENT_SONG.duration}</Text>
+          </View>
+        </View>
+
+        {/* Controls */}
+        <View style={styles.controlsRow}>
+          <TouchableOpacity style={styles.controlBtn}>
+            <Ionicons name="play-skip-back" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.playPauseBtn}
+            onPress={() => setIsPlaying(!isPlaying)}
+          >
+            <Ionicons name={isPlaying ? 'pause' : 'play'} size={28} color={colors.textOnPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlBtn}>
+            <Ionicons name="play-skip-forward" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Volume */}
+        <View style={styles.volumeRow}>
+          <Ionicons name="volume-low" size={16} color={colors.textMuted} />
+          <View style={styles.volumeTrack}>
+            <View style={[styles.volumeFill, { width: `${volume}%` }]} />
+          </View>
+          <Text style={styles.volumeText}>{volume}%</Text>
+        </View>
+      </View>
+
+      {/* ── Next Up (mini queue) ── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>⏭️ Siguiente</Text>
+        <TouchableOpacity onPress={() => router.push('/session/dj-queue' as any)}>
+          <Text style={styles.seeAllText}>Ver cola →</Text>
+        </TouchableOpacity>
+      </View>
+      {NEXT_SONGS.map((song, i) => (
+        <View key={i} style={styles.nextSongRow}>
+          <View style={[styles.nextRank, i === 0 && styles.nextRankFirst]}>
+            <Text style={[styles.nextRankText, i === 0 && styles.nextRankTextFirst]}>{i + 1}</Text>
+          </View>
+          <View style={styles.nextSongInfo}>
+            <Text style={styles.nextSongTitle} numberOfLines={1}>{song.title}</Text>
+            <Text style={styles.nextSongArtist} numberOfLines={1}>{song.artist} · {song.requester}</Text>
+          </View>
+          <View style={styles.nextVotes}>
+            <Text style={styles.nextVotesText}>🔥 {song.votes}</Text>
+          </View>
+        </View>
+      ))}
+
+      {/* ── Chat Preview ── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>💬 Chat</Text>
+        <TouchableOpacity>
+          <Text style={styles.seeAllText}>Abrir →</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.chatCard}>
+        {CHAT_MESSAGES.map(msg => (
+          <View key={msg.id} style={styles.chatMsg}>
+            <Text style={styles.chatAvatar}>{msg.avatar}</Text>
+            <View style={styles.chatBubble}>
+              <Text style={styles.chatUser}>{msg.user}</Text>
+              <Text style={styles.chatText}>{msg.text}</Text>
+            </View>
+            <Text style={styles.chatTime}>{msg.time}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* ── Quick Actions ── */}
+      <Text style={styles.sectionTitle}>⚡ Acciones rápidas</Text>
+      <View style={styles.actionsGrid}>
+        <TouchableOpacity style={styles.actionCard}>
+          <View style={[styles.actionIconBg, { backgroundColor: colors.accent + '20' }]}>
+            <Ionicons name="megaphone" size={22} color={colors.accent} />
+          </View>
+          <Text style={styles.actionLabel}>Anunciar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionCard, autoDJ && styles.actionCardActive]}
+          onPress={() => setAutoDJ(!autoDJ)}
+        >
+          <View style={[styles.actionIconBg, { backgroundColor: autoDJ ? colors.primary + '30' : colors.surfaceLight }]}>
+            <Ionicons name="sparkles" size={22} color={autoDJ ? colors.primary : colors.textMuted} />
+          </View>
+          <Text style={[styles.actionLabel, autoDJ && styles.actionLabelActive]}>
+            AutoDJ {autoDJ ? 'ON' : 'OFF'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionCard}>
+          <View style={[styles.actionIconBg, { backgroundColor: colors.warning + '20' }]}>
+            <Ionicons name="gift" size={22} color={colors.warning} />
+          </View>
+          <Text style={styles.actionLabel}>Sorpresa</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Navigation Row ── */}
+      <View style={styles.navRow}>
+        <TouchableOpacity style={styles.navBtn} onPress={() => router.push('/session/dj-queue' as any)}>
+          <Ionicons name="list" size={20} color={colors.accent} />
+          <Text style={styles.navBtnText}>Cola</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={() => router.push('/session/dj-people' as any)}>
+          <Ionicons name="people" size={20} color={colors.primary} />
+          <Text style={styles.navBtnText}>Gente</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={() => router.push('/session/share-qr' as any)}>
+          <Ionicons name="qr-code" size={20} color={colors.warning} />
+          <Text style={styles.navBtnText}>QR</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={() => router.push('/session/stats' as any)}>
+          <Ionicons name="stats-chart" size={20} color="#A78BFA" />
+          <Text style={styles.navBtnText}>Stats</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── End Session ── */}
       <TouchableOpacity style={styles.endBtn}>
-        <Ionicons name="stop-circle" size={20} color="#ff4444" />
+        <Ionicons name="stop-circle" size={18} color={colors.error} />
         <Text style={styles.endText}>Finalizar sesión</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
+// ─── Styles ─────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: spacing.base, paddingBottom: spacing['3xl'] },
+  content: { paddingHorizontal: spacing.base, paddingBottom: spacing['4xl'] },
+
+  // Header
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: spacing.md, marginBottom: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
   },
+  backBtn: { padding: spacing.xs },
+  headerCenter: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { ...typography.h2, color: colors.textPrimary },
   liveBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,59,48,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,59,48,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
   },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ff3b30' },
-  liveText: { ...typography.captionBold, color: '#ff3b30', fontSize: 11, letterSpacing: 0.5 },
-  sessionName: { ...typography.body, color: colors.primary, marginBottom: spacing.md, fontSize: 15 },
-
-  // Stats bar
-  statsBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
-    backgroundColor: '#1a2632', borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.lg,
-    borderWidth: 1, borderColor: colors.border,
+  pulseContainer: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
+  pulseRing: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ff3b30',
   },
-  statItem: { alignItems: 'center', gap: 2 },
-  statValue: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 18 },
-  statLabel: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
-  statDivider: { width: 1, height: 30, backgroundColor: colors.border },
+  liveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#ff3b30' },
+  liveText: { ...typography.captionBold, color: '#ff3b30', fontSize: 10, letterSpacing: 0.5 },
+  settingsBtn: { padding: spacing.xs },
 
-  // Ranking
-  rankingHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm,
+  // Session
+  sessionBar: { marginBottom: spacing.md },
+  sessionName: { ...typography.h3, color: colors.primary, fontSize: 17 },
+  sessionGenre: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+
+  // Stats Grid
+  statsGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  statIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValue: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 17 },
+  statLabel: { ...typography.caption, color: colors.textMuted, fontSize: 10 },
+
+  // Now Playing
+  nowPlayingCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.base,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sectionLabel: {
+    ...typography.captionBold,
+    color: colors.textMuted,
+    letterSpacing: 1,
+    fontSize: 10,
+    marginBottom: spacing.sm,
+  },
+  nowPlayingContent: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  albumArt: {
+    width: 72,
+    height: 72,
+    borderRadius: borderRadius.md,
+  },
+  songDetails: { flex: 1, justifyContent: 'center' },
+  songTitle: { ...typography.h3, color: colors.textPrimary, fontSize: 18 },
+  songArtist: { ...typography.body, color: colors.textSecondary, fontSize: 14, marginTop: 2 },
+  songAlbum: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+
+  // Progress
+  progressContainer: { marginBottom: spacing.md },
+  progressTrack: {
+    height: 4,
+    backgroundColor: colors.progressTrack,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  timeText: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
+
+  // Controls
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing['2xl'],
+    marginBottom: spacing.md,
+  },
+  controlBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playPauseBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Volume
+  volumeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  volumeTrack: {
+    flex: 1,
+    height: 3,
+    backgroundColor: colors.progressTrack,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  volumeFill: {
+    height: '100%',
+    backgroundColor: colors.textMuted,
+    borderRadius: 2,
+  },
+  volumeText: { ...typography.caption, color: colors.textMuted, fontSize: 11, minWidth: 30 },
+
+  // Section headers
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   sectionTitle: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 15 },
-  rankCard: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: '#1a2632', borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.sm,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  seeAllText: { ...typography.bodySmall, color: colors.primary, fontSize: 13 },
+
+  // Next songs
+  nextSongRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  rankCardFirst: {
-    borderColor: 'rgba(255, 215, 0, 0.3)',
-    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+  nextRank: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  rankBadge: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface,
-    justifyContent: 'center', alignItems: 'center',
+  nextRankFirst: { backgroundColor: 'rgba(255,215,0,0.2)' },
+  nextRankText: { ...typography.captionBold, color: colors.textMuted, fontSize: 12 },
+  nextRankTextFirst: { color: '#FFD700' },
+  nextSongInfo: { flex: 1 },
+  nextSongTitle: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 13 },
+  nextSongArtist: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
+  nextVotes: {
+    backgroundColor: 'rgba(255,107,0,0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
   },
-  rankBadgeGold: { backgroundColor: 'rgba(255, 215, 0, 0.2)' },
-  rankBadgeSilver: { backgroundColor: 'rgba(192, 192, 192, 0.2)' },
-  rankBadgeBronze: { backgroundColor: 'rgba(205, 127, 50, 0.2)' },
-  rankNumber: { ...typography.captionBold, color: colors.textMuted, fontSize: 13 },
-  rankNumberTop: { color: colors.textPrimary },
-  rankArt: { width: 44, height: 44, borderRadius: borderRadius.sm },
-  rankArtPlaceholder: {
-    width: 44, height: 44, borderRadius: borderRadius.sm, backgroundColor: colors.surface,
-    justifyContent: 'center', alignItems: 'center',
+  nextVotesText: { ...typography.captionBold, color: '#ff6b00', fontSize: 12 },
+
+  // Chat
+  chatCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.sm,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  rankInfo: { flex: 1 },
-  rankTitle: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 14 },
-  rankArtist: { ...typography.caption, color: colors.textSecondary, fontSize: 12 },
-  voteDisplay: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12,
+  chatMsg: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
-  voteDisplayActive: { backgroundColor: 'rgba(255,107,0,0.15)' },
-  voteEmoji: { fontSize: 16 },
-  voteCount: { ...typography.bodyBold, color: colors.textMuted, fontSize: 16 },
-  voteCountActive: { color: '#ff6b00' },
+  chatAvatar: { fontSize: 20 },
+  chatBubble: { flex: 1 },
+  chatUser: { ...typography.captionBold, color: colors.primary, fontSize: 12 },
+  chatText: { ...typography.bodySmall, color: colors.textPrimary, fontSize: 13 },
+  chatTime: { ...typography.caption, color: colors.textMuted, fontSize: 10, marginTop: 2 },
 
   // Actions
-  actionsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, marginBottom: spacing.md },
-  actionBtn: {
-    flex: 1, alignItems: 'center', gap: spacing.xs, padding: spacing.md,
-    backgroundColor: '#1a2632', borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.border,
+  actionsGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  actionText: { ...typography.caption, color: colors.textSecondary, fontSize: 12 },
+  actionCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionCardActive: {
+    borderColor: colors.primary + '50',
+    backgroundColor: colors.primary + '08',
+  },
+  actionIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionLabel: { ...typography.captionBold, color: colors.textSecondary, fontSize: 11 },
+  actionLabelActive: { color: colors.primary },
+
+  // Nav
+  navRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  navBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  navBtnText: { ...typography.captionBold, color: colors.textSecondary, fontSize: 12 },
 
   // End
   endBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-    padding: spacing.md, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: 'rgba(255,68,68,0.3)',
-    marginTop: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.error + '30',
+    marginBottom: spacing.xl,
   },
-  endText: { ...typography.bodyBold, color: '#ff4444', fontSize: 14 },
-
-  // States
-  centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing['5xl'], gap: spacing.sm },
-  stateText: { ...typography.bodySmall, color: colors.textMuted },
-  emptyState: { alignItems: 'center', paddingVertical: spacing['3xl'], gap: spacing.sm },
-  emptyTitle: { ...typography.h3, color: colors.textSecondary },
-  emptySubtitle: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
+  endText: { ...typography.bodyBold, color: colors.error, fontSize: 14 },
 });

@@ -98,7 +98,7 @@ export default function SettingsScreen() {
       </View>
 
       {/* Version */}
-      <Text style={styles.version}>WhatsSound v0.1.0</Text>
+      <Text style={styles.version}>WhatsSound v2.0.0</Text>
     </ScrollView>
   );
 }

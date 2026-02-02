@@ -1,6 +1,6 @@
 /**
  * WhatsSound — Tab Layout
- * 4 tabs: Chats, En Vivo, Descubrir, Ajustes
+ * 5 tabs: En Vivo, Grupos, Historial, Descubrir, Ajustes
  */
 
 import React from 'react';
@@ -12,6 +12,7 @@ import { typography } from '../../src/theme/typography';
 export default function TabLayout() {
   return (
     <Tabs
+      initialRouteName="live"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -24,20 +25,10 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          ...typography.caption,
-          fontSize: 11,
+          ...typography.tab,
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Chats',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
-          ),
-        }}
-      />
       <Tabs.Screen
         name="live"
         options={{
@@ -45,8 +36,26 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="radio" size={size} color={color} />
           ),
-          tabBarBadge: 3,
+          tabBarBadge: 5,
           tabBarBadgeStyle: { backgroundColor: colors.error, fontSize: 10 },
+        }}
+      />
+      <Tabs.Screen
+        name="groups"
+        options={{
+          title: 'Grupos',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'Historial',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="time" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -67,9 +76,8 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Hidden tabs */}
-      <Tabs.Screen name="groups" options={{ href: null }} />
-      <Tabs.Screen name="history" options={{ href: null }} />
+      {/* Hidden: index redirects to live */}
+      <Tabs.Screen name="index" options={{ href: null }} />
     </Tabs>
   );
 }

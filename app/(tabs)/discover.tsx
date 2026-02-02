@@ -1,249 +1,463 @@
 /**
  * WhatsSound — Descubrir
- * DJs reales de Supabase + sesiones próximas + explorar géneros
+ * Pantalla rica con sesiones populares, DJs destacados, géneros y cercanía
+ * Optimizada para demo de inversores
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+  FlatList,
+  Dimensions,
+  TextInput,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
-import { Avatar } from '../../src/components/ui/Avatar';
-import { Card } from '../../src/components/ui/Card';
-import { Badge } from '../../src/components/ui/Badge';
-import { Input } from '../../src/components/ui/Input';
-import { supabase } from '../../src/lib/supabase';
 
-interface DjProfile {
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ─── Mock Data ───────────────────────────────────────────────
+
+interface PopularSession {
   id: string;
-  display_name: string;
-  username: string;
-  genres: string[];
-  is_dj: boolean;
-  isFollowing?: boolean;
+  name: string;
+  dj: string;
+  genre: string;
+  listeners: number;
+  isLive: boolean;
+  emoji: string;
 }
 
-// All data from Supabase
+interface FeaturedDJ {
+  id: string;
+  name: string;
+  initials: string;
+  genre: string;
+  followers: string;
+  isLive: boolean;
+  color: string;
+}
 
-const GENRES = ['🎵 Reggaeton', '🎸 Rock', '🎹 Techno', '🎷 Jazz', '🎤 Pop', '📻 Lo-Fi', '🪗 Latina', '🥁 Hip Hop'];
+interface Genre {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  sessions: number;
+}
+
+interface NearbySession {
+  id: string;
+  name: string;
+  dj: string;
+  venue: string;
+  distance: string;
+  listeners: number;
+  genre: string;
+  isLive: boolean;
+}
+
+const POPULAR_SESSIONS: PopularSession[] = [
+  { id: '1', name: 'Viernes Latino 🔥', dj: 'Carlos Madrid', genre: 'Reggaetón', listeners: 234, isLive: true, emoji: '🔥' },
+  { id: '2', name: 'Techno Warehouse', dj: 'DJ KRTL', genre: 'Techno', listeners: 187, isLive: true, emoji: '🎛️' },
+  { id: '3', name: 'Chill Sunday', dj: 'Luna Beats', genre: 'Lo-fi', listeners: 89, isLive: true, emoji: '🌙' },
+  { id: '4', name: 'Hip Hop Cypher', dj: 'MC Flow', genre: 'Hip Hop', listeners: 156, isLive: true, emoji: '🎤' },
+  { id: '5', name: 'House Nation', dj: 'DJ Pulse', genre: 'House', listeners: 203, isLive: false, emoji: '🏠' },
+];
+
+const FEATURED_DJS: FeaturedDJ[] = [
+  { id: 'dj1', name: 'Carlos Madrid', initials: 'CM', genre: 'Reggaetón', followers: '2.3K', isLive: true, color: '#25D366' },
+  { id: 'dj2', name: 'DJ KRTL', initials: 'KR', genre: 'Techno', followers: '5.1K', isLive: true, color: '#53BDEB' },
+  { id: 'dj3', name: 'Luna Beats', initials: 'LB', genre: 'Lo-fi', followers: '1.8K', isLive: false, color: '#FFA726' },
+  { id: 'dj4', name: 'MC Flow', initials: 'MF', genre: 'Hip Hop', followers: '3.4K', isLive: true, color: '#EF5350' },
+  { id: 'dj5', name: 'DJ Pulse', initials: 'DP', genre: 'House', followers: '4.2K', isLive: false, color: '#AB47BC' },
+  { id: 'dj6', name: 'Nerea BCN', initials: 'NB', genre: 'Techno', followers: '2.7K', isLive: false, color: '#26C6DA' },
+  { id: 'dj7', name: 'Rhythm King', initials: 'RK', genre: 'Dancehall', followers: '1.5K', isLive: true, color: '#66BB6A' },
+];
+
+const GENRES: Genre[] = [
+  { id: 'reggaeton', name: 'Reggaetón', icon: '🎵', color: '#25D366', sessions: 48 },
+  { id: 'techno', name: 'Techno', icon: '🎛️', color: '#53BDEB', sessions: 35 },
+  { id: 'house', name: 'House', icon: '🏠', color: '#AB47BC', sessions: 29 },
+  { id: 'hiphop', name: 'Hip Hop', icon: '🎤', color: '#FFA726', sessions: 42 },
+  { id: 'pop', name: 'Pop', icon: '🎶', color: '#EF5350', sessions: 31 },
+  { id: 'rock', name: 'Rock', icon: '🎸', color: '#78909C', sessions: 18 },
+  { id: 'jazz', name: 'Jazz', icon: '🎷', color: '#FFD54F', sessions: 12 },
+  { id: 'lofi', name: 'Lo-fi', icon: '🌙', color: '#26C6DA', sessions: 24 },
+];
+
+const NEARBY_SESSIONS: NearbySession[] = [
+  { id: 'n1', name: 'Latino Night', dj: 'Carlos Madrid', venue: 'Sala Sol, Madrid', distance: '0.3 km', listeners: 87, genre: 'Reggaetón', isLive: true },
+  { id: 'n2', name: 'Underground Beats', dj: 'DJ Pulse', venue: 'Mondo Disko, Madrid', distance: '1.2 km', listeners: 134, genre: 'Techno', isLive: true },
+  { id: 'n3', name: 'Acoustic Vibes', dj: 'Nerea BCN', venue: 'Café Central, Madrid', distance: '2.1 km', listeners: 45, genre: 'Jazz', isLive: true },
+  { id: 'n4', name: 'Trap House', dj: 'MC Flow', venue: 'La Riviera, Madrid', distance: '3.5 km', listeners: 210, genre: 'Hip Hop', isLive: false },
+];
+
+// ─── Components ──────────────────────────────────────────────
+
+const LiveDot = () => (
+  <View style={styles.liveDot} />
+);
+
+const PopularSessionCard = ({ session, onPress }: { session: PopularSession; onPress: () => void }) => (
+  <TouchableOpacity style={styles.popularCard} activeOpacity={0.8} onPress={onPress}>
+    <View style={styles.popularCardHeader}>
+      <Text style={styles.popularEmoji}>{session.emoji}</Text>
+      {session.isLive && (
+        <View style={styles.liveTag}>
+          <LiveDot />
+          <Text style={styles.liveTagText}>EN VIVO</Text>
+        </View>
+      )}
+    </View>
+    <Text style={styles.popularName} numberOfLines={1}>{session.name}</Text>
+    <Text style={styles.popularDj} numberOfLines={1}>{session.dj}</Text>
+    <View style={styles.popularFooter}>
+      <View style={styles.popularGenreTag}>
+        <Text style={styles.popularGenreText}>{session.genre}</Text>
+      </View>
+      <View style={styles.popularListeners}>
+        <Ionicons name="headset-outline" size={12} color={colors.textMuted} />
+        <Text style={styles.popularListenersText}>{session.listeners}</Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+);
+
+const DJAvatar = ({ dj, onPress }: { dj: FeaturedDJ; onPress: () => void }) => (
+  <TouchableOpacity style={styles.djAvatarContainer} activeOpacity={0.7} onPress={onPress}>
+    <View style={[styles.djAvatarRing, dj.isLive && styles.djAvatarLiveRing]}>
+      <View style={[styles.djAvatar, { backgroundColor: dj.color + '30' }]}>
+        <Text style={[styles.djAvatarInitials, { color: dj.color }]}>{dj.initials}</Text>
+      </View>
+    </View>
+    {dj.isLive && (
+      <View style={styles.djLiveBadge}>
+        <Text style={styles.djLiveBadgeText}>LIVE</Text>
+      </View>
+    )}
+    <Text style={styles.djAvatarName} numberOfLines={1}>{dj.name.split(' ')[0]}</Text>
+    <Text style={styles.djAvatarFollowers}>{dj.followers}</Text>
+  </TouchableOpacity>
+);
+
+const GenreCard = ({ genre, onPress }: { genre: Genre; onPress: () => void }) => (
+  <TouchableOpacity style={styles.genreCard} activeOpacity={0.7} onPress={onPress}>
+    <View style={[styles.genreIconBg, { backgroundColor: genre.color + '20' }]}>
+      <Text style={styles.genreIcon}>{genre.icon}</Text>
+    </View>
+    <Text style={styles.genreName}>{genre.name}</Text>
+    <Text style={styles.genreSessions}>{genre.sessions} sesiones</Text>
+  </TouchableOpacity>
+);
+
+const NearbySessionItem = ({ session, onPress }: { session: NearbySession; onPress: () => void }) => (
+  <TouchableOpacity style={styles.nearbyItem} activeOpacity={0.7} onPress={onPress}>
+    <View style={styles.nearbyLeft}>
+      <View style={[styles.nearbyDot, session.isLive && styles.nearbyDotLive]} />
+    </View>
+    <View style={styles.nearbyInfo}>
+      <View style={styles.nearbyTitleRow}>
+        <Text style={styles.nearbyName} numberOfLines={1}>{session.name}</Text>
+        {session.isLive && (
+          <View style={styles.nearbyLiveTag}>
+            <LiveDot />
+            <Text style={styles.nearbyLiveText}>LIVE</Text>
+          </View>
+        )}
+      </View>
+      <Text style={styles.nearbyDj}>{session.dj} · {session.genre}</Text>
+      <View style={styles.nearbyMeta}>
+        <Ionicons name="location-outline" size={13} color={colors.textMuted} />
+        <Text style={styles.nearbyMetaText}>{session.venue} · {session.distance}</Text>
+      </View>
+    </View>
+    <View style={styles.nearbyRight}>
+      <Ionicons name="headset-outline" size={14} color={colors.textSecondary} />
+      <Text style={styles.nearbyListeners}>{session.listeners}</Text>
+    </View>
+  </TouchableOpacity>
+);
+
+// ─── Main Screen ─────────────────────────────────────────────
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const [djs, setDjs] = useState<DjProfile[]>([]);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [loadingDjs, setLoadingDjs] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
-
-  const fetchDjs = async () => {
-    setLoadingDjs(true);
-    setFetchError(false);
-    try {
-      const { data: { session: _s } } = await supabase.auth.getSession(); const user = _s?.user;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, display_name, username, genres, is_dj')
-        .eq('is_dj', true)
-        .order('display_name');
-
-      if (error) {
-        setFetchError(true);
-      } else if (data) {
-        // Check which ones we follow
-        let followedIds: string[] = [];
-        if (user) {
-          const { data: follows } = await supabase
-            .from('followers')
-            .select('dj_id')
-            .eq('follower_id', user.id);
-          followedIds = (follows || []).map((f: any) => f.dj_id);
-        }
-        setDjs(data.map((d: any) => ({ ...d, isFollowing: followedIds.includes(d.id) })));
-      }
-    } catch {
-      setFetchError(true);
-    } finally {
-      setLoadingDjs(false);
-    }
-  };
-
-  const toggleFollow = async (djId: string) => {
-    const { data: { session: _s } } = await supabase.auth.getSession(); const user = _s?.user;
-    if (!user) return;
-    const dj = djs.find(d => d.id === djId);
-    if (!dj) return;
-
-    if (dj.isFollowing) {
-      await supabase.from('followers').delete().eq('follower_id', user.id).eq('dj_id', djId);
-    } else {
-      await supabase.from('followers').insert({ follower_id: user.id, dj_id: djId });
-    }
-    // Optimistic update
-    setDjs(prev => prev.map(d => d.id === djId ? { ...d, isFollowing: !d.isFollowing } : d));
-  };
-
-  useEffect(() => { fetchDjs(); }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchDjs();
+    await new Promise(r => setTimeout(r, 800));
     setRefreshing(false);
   };
 
-  const allDjs = djs;
-  const filtered = search
-    ? allDjs.filter(d => d.display_name.toLowerCase().includes(search.toLowerCase()) ||
-        d.genres?.some(g => g.toLowerCase().includes(search.toLowerCase())))
-    : allDjs;
+  const filteredSessions = search
+    ? POPULAR_SESSIONS.filter(s =>
+        s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.dj.toLowerCase().includes(search.toLowerCase()) ||
+        s.genre.toLowerCase().includes(search.toLowerCase()))
+    : POPULAR_SESSIONS;
+
+  const filteredDJs = search
+    ? FEATURED_DJS.filter(d =>
+        d.name.toLowerCase().includes(search.toLowerCase()) ||
+        d.genre.toLowerCase().includes(search.toLowerCase()))
+    : FEATURED_DJS;
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+      showsVerticalScrollIndicator={false}
     >
+      {/* Header */}
       <Text style={styles.title}>Descubrir</Text>
 
-      {/* Search */}
-      <View style={styles.searchSection}>
-        <Input
+      {/* Search bar */}
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={18} color={colors.textMuted} />
+        <TextInput
+          style={styles.searchInput}
           placeholder="Buscar DJs, géneros, sesiones..."
+          placeholderTextColor={colors.textMuted}
           value={search}
           onChangeText={setSearch}
-          icon="search"
         />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Genres */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.genreRow} contentContainerStyle={styles.genreContent}>
-        {GENRES.map(g => (
-          <TouchableOpacity key={g} style={styles.genreChip} onPress={() => setSearch(g.slice(2))}>
-            <Text style={styles.genreText}>{g}</Text>
-          </TouchableOpacity>
+      {/* ── Sesiones populares ahora ── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>🔥 Sesiones populares ahora</Text>
+        <TouchableOpacity>
+          <Text style={styles.seeAll}>Ver todas</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontalScroll}
+      >
+        {filteredSessions.map(session => (
+          <PopularSessionCard
+            key={session.id}
+            session={session}
+            onPress={() => router.push(`/session/${session.id}` as any)}
+          />
         ))}
       </ScrollView>
 
-      {/* Top DJs */}
+      {/* ── DJs destacados ── */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>🎧 Top DJs</Text>
-        <Text style={styles.sectionCount}>{allDjs.length} DJs</Text>
+        <Text style={styles.sectionTitle}>🎧 DJs destacados</Text>
+        <TouchableOpacity>
+          <Text style={styles.seeAll}>Ver todos</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontalScroll}
+      >
+        {filteredDJs.map(dj => (
+          <DJAvatar
+            key={dj.id}
+            dj={dj}
+            onPress={() => router.push(`/profile/${dj.id}` as any)}
+          />
+        ))}
+      </ScrollView>
+
+      {/* ── Géneros ── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>🎶 Géneros</Text>
+      </View>
+      <View style={styles.genreGrid}>
+        {GENRES.map(genre => (
+          <GenreCard
+            key={genre.id}
+            genre={genre}
+            onPress={() => setSearch(genre.name)}
+          />
+        ))}
       </View>
 
-      {/* Loading state */}
-      {loadingDjs && !refreshing && (
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.stateText}>Cargando DJs...</Text>
+      {/* ── Cerca de ti ── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>📍 Cerca de ti</Text>
+        <View style={styles.locationTag}>
+          <Ionicons name="location" size={12} color={colors.primary} />
+          <Text style={styles.locationText}>Madrid</Text>
         </View>
-      )}
-
-      {/* Error state */}
-      {!loadingDjs && fetchError && (
-        <View style={styles.centerState}>
-          <Ionicons name="cloud-offline-outline" size={48} color={colors.textMuted} />
-          <Text style={styles.stateTitle}>Error al cargar</Text>
-          <Text style={styles.stateText}>No pudimos obtener los DJs</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchDjs}>
-            <Ionicons name="refresh" size={18} color={colors.textOnPrimary} />
-            <Text style={styles.retryText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Empty state */}
-      {!loadingDjs && !fetchError && filtered.length === 0 && (
-        <View style={styles.centerState}>
-          <Ionicons name="headset-outline" size={48} color={colors.textMuted} />
-          <Text style={styles.stateTitle}>{search ? 'Sin resultados' : 'No hay DJs aún'}</Text>
-          <Text style={styles.stateText}>{search ? `No encontramos DJs para "${search}"` : 'Sé el primero en registrarte como DJ'}</Text>
-        </View>
-      )}
-
-      {!loadingDjs && filtered.map(dj => (
-        <TouchableOpacity key={dj.id} style={styles.djItem} activeOpacity={0.7}>
-          <Avatar name={dj.display_name} size="lg" />
-          <View style={styles.djInfo}>
-            <View style={styles.djNameRow}>
-              <Text style={styles.djName}>{dj.display_name}</Text>
-            </View>
-            <Text style={styles.djGenre}>{dj.genres?.join(' · ') || 'Varios'}</Text>
-            <Text style={styles.djUsername}>@{dj.username}</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.followBtn, dj.isFollowing && styles.followingBtn]}
-            onPress={() => toggleFollow(dj.id)}
-          >
-            <Text style={[styles.followText, dj.isFollowing && styles.followingText]}>
-              {dj.isFollowing ? 'Siguiendo' : 'Seguir'}
-            </Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
+      </View>
+      {NEARBY_SESSIONS.map(session => (
+        <NearbySessionItem
+          key={session.id}
+          session={session}
+          onPress={() => router.push(`/session/${session.id}` as any)}
+        />
       ))}
 
-      {/* Upcoming */}
-      <View style={[styles.sectionHeader, { marginTop: spacing.xl }]}>
-        <Text style={styles.sectionTitle}>📅 Próximas sesiones</Text>
-      </View>
-
-      <View style={{ alignItems: 'center', paddingVertical: spacing['2xl'] }}>
-        <Text style={{ ...typography.body, color: colors.textMuted }}>No hay sesiones programadas</Text>
-      </View>
+      <View style={{ height: spacing['3xl'] }} />
     </ScrollView>
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────
+
+const CARD_WIDTH = SCREEN_WIDTH * 0.42;
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { paddingBottom: spacing['3xl'] },
-  title: { ...typography.h1, color: colors.textPrimary, paddingHorizontal: spacing.base, paddingTop: spacing.md },
-  searchSection: { paddingHorizontal: spacing.base, marginTop: spacing.md },
-  genreRow: { marginTop: spacing.md, marginBottom: spacing.sm },
-  genreContent: { paddingHorizontal: spacing.base, gap: spacing.sm },
-  genreChip: {
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full, backgroundColor: colors.surface,
+  title: {
+    ...typography.h1, color: colors.textPrimary,
+    paddingHorizontal: spacing.base, paddingTop: spacing.md, paddingBottom: spacing.sm,
+  },
+
+  // Search
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    marginHorizontal: spacing.base, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+    backgroundColor: colors.surface, borderRadius: borderRadius.lg,
     borderWidth: 1, borderColor: colors.border,
   },
-  genreText: { ...typography.bodySmall, color: colors.textSecondary },
+  searchInput: {
+    flex: 1, ...typography.body, color: colors.textPrimary, padding: 0,
+  },
+
+  // Section headers
   sectionHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: spacing.base, paddingVertical: spacing.md,
+    paddingHorizontal: spacing.base, paddingTop: spacing.xl, paddingBottom: spacing.md,
   },
   sectionTitle: { ...typography.h3, color: colors.textPrimary },
-  sectionCount: { ...typography.caption, color: colors.textMuted },
-  djItem: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    paddingHorizontal: spacing.base, paddingVertical: spacing.sm,
+  seeAll: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
+
+  horizontalScroll: { paddingHorizontal: spacing.base, gap: spacing.md },
+
+  // Popular session cards
+  popularCard: {
+    width: CARD_WIDTH, backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl, padding: spacing.md,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  popularCardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  popularEmoji: { fontSize: 28 },
+  liveTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#EF535020', paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  liveTagText: { ...typography.caption, color: '#EF5350', fontWeight: '700', fontSize: 9 },
+  popularName: { ...typography.bodyBold, color: colors.textPrimary, marginBottom: 2 },
+  popularDj: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.sm },
+  popularFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  popularGenreTag: {
+    backgroundColor: colors.primary + '15', paddingHorizontal: spacing.sm, paddingVertical: 2,
+    borderRadius: borderRadius.full,
+  },
+  popularGenreText: { ...typography.caption, color: colors.primary, fontWeight: '600', fontSize: 10 },
+  popularListeners: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  popularListenersText: { ...typography.caption, color: colors.textMuted },
+
+  // DJ Avatars
+  djAvatarContainer: { alignItems: 'center', width: 76, gap: 4 },
+  djAvatarRing: {
+    width: 64, height: 64, borderRadius: 32,
+    borderWidth: 2, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  djAvatarLiveRing: { borderColor: colors.primary },
+  djAvatar: {
+    width: 56, height: 56, borderRadius: 28,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  djAvatarInitials: { ...typography.h3, fontWeight: '700' },
+  djLiveBadge: {
+    position: 'absolute', top: 48, backgroundColor: colors.primary,
+    paddingHorizontal: 5, paddingVertical: 1, borderRadius: borderRadius.sm,
+    borderWidth: 2, borderColor: colors.background,
+  },
+  djLiveBadgeText: { fontSize: 8, fontWeight: '800', color: colors.textOnPrimary },
+  djAvatarName: { ...typography.caption, color: colors.textPrimary, fontWeight: '600' },
+  djAvatarFollowers: { ...typography.caption, color: colors.textMuted, fontSize: 10 },
+
+  // Live dot
+  liveDot: {
+    width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF5350',
+  },
+
+  // Genre grid
+  genreGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: spacing.base, gap: spacing.sm,
+  },
+  genreCard: {
+    width: (SCREEN_WIDTH - spacing.base * 2 - spacing.sm * 3) / 4,
+    backgroundColor: colors.surface, borderRadius: borderRadius.lg,
+    alignItems: 'center', paddingVertical: spacing.md, gap: 4,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  genreIconBg: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  genreIcon: { fontSize: 20 },
+  genreName: { ...typography.caption, color: colors.textPrimary, fontWeight: '600' },
+  genreSessions: { ...typography.caption, color: colors.textMuted, fontSize: 10 },
+
+  // Location tag
+  locationTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: colors.primary + '15', paddingHorizontal: spacing.sm, paddingVertical: 2,
+    borderRadius: borderRadius.full,
+  },
+  locationText: { ...typography.caption, color: colors.primary, fontWeight: '600', fontSize: 11 },
+
+  // Nearby sessions
+  nearbyItem: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.base, paddingVertical: spacing.md,
     borderBottomWidth: 0.5, borderBottomColor: colors.divider,
   },
-  djInfo: { flex: 1, gap: 2 },
-  djNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  djName: { ...typography.bodyBold, color: colors.textPrimary },
-  djGenre: { ...typography.caption, color: colors.textSecondary },
-  djUsername: { ...typography.caption, color: colors.textMuted },
-  followBtn: {
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.primary,
+  nearbyLeft: { width: 24, alignItems: 'center' },
+  nearbyDot: {
+    width: 10, height: 10, borderRadius: 5, backgroundColor: colors.textMuted,
   },
-  followText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
-  followingBtn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  followingText: { color: colors.textOnPrimary },
-  eventCard: { marginHorizontal: spacing.base, marginBottom: spacing.sm, padding: spacing.base, flexDirection: 'row', alignItems: 'center' },
-  eventInfo: { flex: 1, gap: 4 },
-  eventName: { ...typography.bodyBold, color: colors.textPrimary },
-  eventDj: { ...typography.caption, color: colors.textSecondary },
-  eventMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  eventDate: { ...typography.caption, color: colors.textMuted },
-  notifyBtn: { padding: spacing.sm },
-  centerState: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing['3xl'], gap: spacing.sm },
-  stateTitle: { ...typography.h3, color: colors.textPrimary },
-  stateText: { ...typography.bodySmall, color: colors.textMuted, textAlign: 'center' },
-  retryBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
-    backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full, marginTop: spacing.sm,
+  nearbyDotLive: { backgroundColor: colors.primary },
+  nearbyInfo: { flex: 1, marginLeft: spacing.sm, gap: 3 },
+  nearbyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  nearbyName: { ...typography.bodyBold, color: colors.textPrimary, flex: 1 },
+  nearbyLiveTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: '#EF535015', paddingHorizontal: 5, paddingVertical: 1,
+    borderRadius: borderRadius.sm,
   },
-  retryText: { ...typography.bodyBold, color: colors.textOnPrimary, fontSize: 13 },
+  nearbyLiveText: { fontSize: 9, fontWeight: '700', color: '#EF5350' },
+  nearbyDj: { ...typography.caption, color: colors.textSecondary },
+  nearbyMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  nearbyMetaText: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
+  nearbyRight: { alignItems: 'center', gap: 2, marginLeft: spacing.sm },
+  nearbyListeners: { ...typography.caption, color: colors.textSecondary, fontSize: 11 },
 });
