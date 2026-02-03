@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, Dimensions } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
+import { chat as aiChat, getAIConfig, AIMessage, PROVIDER_MODELS } from '../../src/lib/ai-provider';
+import { supabase } from '../../src/lib/supabase';
 
 const isWide = Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.innerWidth > 768 : true) : Dimensions.get('window').width > 768;
 
@@ -12,56 +14,80 @@ interface Message { role: 'user'|'assistant'; content: string; time: string; }
 const SUGGESTIONS = [
   '¿Cuántos usuarios hay activos ahora?',
   '¿Cuál es la sesión más popular?',
-  '¿Cómo va el revenue esta semana?',
+  '¿Cómo van las propinas?',
   '¿Qué género es más popular?',
   'Dame un resumen del día',
-  '¿Hay alertas pendientes?',
+  '¿Cómo cambio el modelo de IA?',
 ];
 
-// Mock AI responses based on keywords
-function getAIResponse(q: string): string {
-  const ql = q.toLowerCase();
-  if (ql.includes('usuario') || ql.includes('activo')) {
-    return '📊 **Usuarios:**\n• Total registrados: 1,247\n• Activos ahora: 45\n• Nuevos hoy: 18\n• Nuevos esta semana: 87\n• Retención D7: 68%\n\nLa tendencia es positiva — +12% vs semana pasada. El pico de registros fue el viernes.';
-  }
-  if (ql.includes('sesión') || ql.includes('sesion') || ql.includes('popular')) {
-    return '🎵 **Sesiones en vivo ahora: 5**\n\n🏆 Más popular: "Chill & Study Beats" (Luna DJ) — 203 listeners\n\nRanking:\n1. Chill & Study Beats — 203 👥\n2. Deep House Sunset — 128 👥\n3. Warehouse Session — 89 👥\n4. Old School Hip Hop — 67 👥\n5. Viernes Latino — 45 👥\n\nTotal listeners simultáneos: 532';
-  }
-  if (ql.includes('revenue') || ql.includes('propina') || ql.includes('dinero') || ql.includes('ingreso')) {
-    return '💰 **Revenue:**\n• Propinas hoy: €23.50\n• Propinas esta semana: €284.00\n• Propinas total: €1,234\n• Media por sesión: €15.80\n• Top tipper: Ana López (€45 total)\n\nLas propinas subieron un 67% desde que añadimos el botón rápido. Proyección mensual: ~€2,400.';
-  }
-  if (ql.includes('género') || ql.includes('genero') || ql.includes('música') || ql.includes('musica')) {
-    return '🎶 **Géneros más populares:**\n1. Reggaetón — 42% de sesiones\n2. Lo-fi/Chill — 18%\n3. Deep House — 15%\n4. Techno — 12%\n5. Hip Hop — 8%\n6. Otros — 5%\n\nSugerencia: promover DJs de reggaetón y lo-fi en Descubrir — son los que más engagement generan.';
-  }
-  if (ql.includes('resumen') || ql.includes('día') || ql.includes('dia') || ql.includes('hoy')) {
-    return '📋 **Resumen del día (3 feb 2026):**\n\n👥 18 nuevos usuarios (+23% vs ayer)\n📡 12 sesiones creadas (5 live ahora)\n🎵 2,841 canciones reproducidas\n💬 8,432 mensajes de chat\n🔥 12,567 reacciones\n💰 €23.50 en propinas\n👥 45 listeners activos ahora\n⏱️ Duración media sesión: 47 minutos\n\n✅ Todo normal. Engagement alto, sin incidencias.';
-  }
-  if (ql.includes('alerta') || ql.includes('reporte') || ql.includes('problema')) {
-    return '🚨 **Alertas:**\n• Alertas activas: 2\n  - ⚠️ Latencia WebSocket > 500ms en EU-West (hace 1h)\n  - ℹ️ Usuario reportó mensaje inapropiado en "Viernes Latino" (hace 2h, revisado — OK)\n• Alertas resueltas hoy: 5\n• Uptime: 99.97%\n\nNada urgente. La latencia se estabilizó tras el último deploy.';
-  }
-  return '🤔 No tengo datos específicos para esa consulta todavía. Estoy conectándome a Supabase para tener datos reales. De momento puedo responder sobre:\n\n• Usuarios y actividad\n• Sesiones en vivo\n• Revenue y propinas\n• Géneros populares\n• Resumen del día\n• Alertas\n\n¿Qué te gustaría saber?';
+// Fetch DB context for AI
+async function getDBContext(): Promise<string> {
+  try {
+    const [
+      { count: users },
+      { count: sessions },
+      { count: songs },
+      { count: msgs },
+      { data: tips },
+      { data: active },
+    ] = await Promise.all([
+      supabase.from('ws_profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('ws_sessions').select('*', { count: 'exact', head: true }),
+      supabase.from('ws_songs').select('*', { count: 'exact', head: true }),
+      supabase.from('ws_messages').select('*', { count: 'exact', head: true }),
+      supabase.from('ws_tips').select('amount').eq('status', 'completed'),
+      supabase.from('ws_sessions').select('name, genres, dj:ws_profiles!dj_id(dj_name), members:ws_session_members(id)').eq('is_active', true),
+    ]);
+    const totalTips = tips?.reduce((s: number, t: any) => s + Number(t.amount), 0) || 0;
+    const lines = [
+      `Usuarios: ${users}`,
+      `Sesiones totales: ${sessions}`,
+      `Canciones: ${songs}`,
+      `Mensajes: ${msgs}`,
+      `Propinas: €${totalTips.toFixed(2)} (${tips?.length || 0} transacciones)`,
+      `Sesiones activas: ${active?.map((s: any) => `${s.name} (${s.dj?.dj_name}, ${s.members?.length || 0} miembros)`).join(', ') || 'ninguna'}`,
+    ];
+    return lines.join('\n');
+  } catch { return '(No se pudieron obtener datos de la DB)'; }
 }
 
 export default function ChatPage() {
+  const config = getAIConfig();
+  const providerLabel = PROVIDER_MODELS[config.provider]?.label || 'Mock';
+  const modelName = config.model || 'mock';
+
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: '¡Hola! Soy Leo, tu analista IA de WhatsSound. 🎧\n\nPuedo ayudarte con métricas, análisis de sesiones, engagement, revenue y más. Pregúntame lo que necesites — solo consulto datos, nunca los modifico.\n\n¿Qué quieres saber?', time: new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'}) },
+    { role: 'assistant', content: `¡Hola! Soy Leo, tu analista IA de WhatsSound. 🎧\n\nConectado a Supabase con datos reales. Provider: **${providerLabel}**\n\nPuedo ayudarte con métricas, análisis de sesiones, engagement, revenue y más.\n\n¿Qué quieres saber?`, time: new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'}) },
   ]);
   const [input, setInput] = useState('');
+  const [thinking, setThinking] = useState(false);
+  const [chatHistory, setChatHistory] = useState<AIMessage[]>([]);
   const scrollRef = useRef<ScrollView>(null);
 
-  const send = (text?: string) => {
+  const send = async (text?: string) => {
     const q = text || input.trim();
-    if (!q) return;
+    if (!q || thinking) return;
     const now = new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
     setMessages(prev => [...prev, { role: 'user', content: q, time: now }]);
     setInput('');
-    // Simulate AI thinking
-    setTimeout(() => {
-      const response = getAIResponse(q);
+    setThinking(true);
+
+    const newHistory: AIMessage[] = [...chatHistory, { role: 'user', content: q }];
+    setChatHistory(newHistory);
+
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+
+    try {
+      const dbContext = await getDBContext();
+      const response = await aiChat(newHistory, dbContext);
       const rTime = new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
       setMessages(prev => [...prev, { role: 'assistant', content: response, time: rTime }]);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-    }, 800);
+      setChatHistory(prev => [...prev, { role: 'assistant', content: response }]);
+    } catch (e: any) {
+      const rTime = new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
+      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${e.message}`, time: rTime }]);
+    }
+    setThinking(false);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
@@ -76,7 +102,7 @@ export default function ChatPage() {
           </View>
         </View>
         <View style={s.modelBadge}>
-          <Text style={{color: colors.primary, fontSize: 11, fontWeight: '700'}}>Claude 3.5</Text>
+          <Text style={{color: colors.primary, fontSize: 11, fontWeight: '700'}}>{providerLabel}</Text>
         </View>
       </View>
 
@@ -92,6 +118,15 @@ export default function ChatPage() {
             </View>
           </View>
         ))}
+        {thinking && (
+          <View style={s.msgRow}>
+            <View style={s.msgAvatar}><Ionicons name="sparkles" size={14} color={colors.primary}/></View>
+            <View style={[s.msgBubble, s.msgBubbleAI, {flexDirection: 'row', alignItems: 'center', gap: 8}]}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={s.msgText}>Pensando...</Text>
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Suggestions */}

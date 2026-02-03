@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Platform, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Platform, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
+import { getAIConfig, setAIConfig, PROVIDER_MODELS, type AIConfig } from '../../src/lib/ai-provider';
 
 const isWide = Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.innerWidth > 768 : true) : Dimensions.get('window').width > 768;
 
@@ -24,6 +25,32 @@ export default function ConfigPage() {
   const [publicSessions, setPublicSessions] = useState(true);
   const [maxListeners, setMaxListeners] = useState('500');
   const [maxQueue, setMaxQueue] = useState('50');
+  
+  // AI Config
+  const [aiProvider, setAiProvider] = useState<AIConfig['provider']>('mock');
+  const [aiApiKey, setAiApiKey] = useState('');
+  const [aiModel, setAiModel] = useState('');
+  const [aiBaseUrl, setAiBaseUrl] = useState('');
+  const [aiSaved, setAiSaved] = useState(false);
+
+  useEffect(() => {
+    const config = getAIConfig();
+    setAiProvider(config.provider);
+    setAiApiKey(config.apiKey || '');
+    setAiModel(config.model || '');
+    setAiBaseUrl(config.baseUrl || '');
+  }, []);
+
+  const saveAIConfig = () => {
+    setAIConfig({
+      provider: aiProvider,
+      apiKey: aiApiKey || undefined,
+      model: aiModel || undefined,
+      baseUrl: aiBaseUrl || undefined,
+    });
+    setAiSaved(true);
+    setTimeout(() => setAiSaved(false), 2000);
+  };
 
   return (
     <ScrollView style={s.main} contentContainerStyle={s.content}>
@@ -49,6 +76,88 @@ export default function ConfigPage() {
           <Text style={s.inputLabel}>Máx. canciones en cola</Text>
           <TextInput style={s.input} value={maxQueue} onChangeText={setMaxQueue} keyboardType="numeric" />
         </View>
+      </View>
+
+      {/* AI Provider Config */}
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>🤖 Asistente IA</Text>
+        <Text style={{...typography.caption, color: colors.textMuted, marginBottom: spacing.md}}>
+          Configura el modelo de IA para el chat del dashboard. Cambia entre proveedores sin tocar código.
+        </Text>
+        
+        {/* Provider selector */}
+        <Text style={s.inputLabel}>Provider</Text>
+        <View style={{flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md, flexWrap: 'wrap'}}>
+          {Object.entries(PROVIDER_MODELS).map(([key, val]) => (
+            <TouchableOpacity
+              key={key}
+              onPress={() => { setAiProvider(key as AIConfig['provider']); setAiModel(''); }}
+              style={{
+                paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+                backgroundColor: aiProvider === key ? colors.primary : colors.surface,
+                borderWidth: 1, borderColor: aiProvider === key ? colors.primary : colors.border,
+              }}
+            >
+              <Text style={{color: aiProvider === key ? colors.textOnPrimary : colors.textSecondary, fontSize: 13, fontWeight: '600'}}>{val.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Model selector */}
+        {aiProvider !== 'mock' && (
+          <>
+            <Text style={s.inputLabel}>Modelo</Text>
+            <View style={{flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md, flexWrap: 'wrap'}}>
+              {PROVIDER_MODELS[aiProvider]?.models.map(m => (
+                <TouchableOpacity
+                  key={m.id}
+                  onPress={() => setAiModel(m.id)}
+                  style={{
+                    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+                    backgroundColor: aiModel === m.id ? colors.accent+'30' : colors.surface,
+                    borderWidth: 1, borderColor: aiModel === m.id ? colors.accent : colors.border,
+                  }}
+                >
+                  <Text style={{color: aiModel === m.id ? colors.accent : colors.textSecondary, fontSize: 12}}>{m.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={s.inputRow}>
+              <Text style={s.inputLabel}>API Key</Text>
+              <TextInput
+                style={s.input}
+                value={aiApiKey}
+                onChangeText={setAiApiKey}
+                placeholder="sk-... o clave de API"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry
+              />
+            </View>
+
+            {aiProvider === 'custom' && (
+              <View style={s.inputRow}>
+                <Text style={s.inputLabel}>Base URL</Text>
+                <TextInput
+                  style={s.input}
+                  value={aiBaseUrl}
+                  onChangeText={setAiBaseUrl}
+                  placeholder="https://api.ejemplo.com/v1"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+            )}
+          </>
+        )}
+
+        <TouchableOpacity onPress={saveAIConfig} style={{
+          backgroundColor: aiSaved ? '#34D399' : colors.primary,
+          paddingVertical: 12, borderRadius: borderRadius.lg, alignItems: 'center', marginTop: spacing.sm,
+        }}>
+          <Text style={{color: colors.textOnPrimary, fontWeight: '700', fontSize: 14}}>
+            {aiSaved ? '✓ Guardado' : 'Guardar configuración IA'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* API & Integrations */}
