@@ -125,7 +125,7 @@ export default function SessionScreen() {
       return m;
     });
   });
-  const [progress, setProgress] = useState(nowPlaying.currentTime / nowPlaying.duration);
+  const [progress, setProgress] = useState(NOW.currentTime / NOW.duration);
   const [playing, setPlaying] = useState(true);
   const [voted, setVoted] = useState<Set<string>>(new Set());
   const [floats, setFloats] = useState<{id:string;emoji:string;anim:Animated.Value;x:number}[]>([]);
