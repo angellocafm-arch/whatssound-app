@@ -21,14 +21,29 @@ import { spacing, borderRadius } from '../../src/theme/spacing';
 import SongSearch from '../../src/components/SongSearch';
 import { DeezerTrack } from '../../src/lib/deezer';
 import { supabase } from '../../src/lib/supabase';
+import { isTestMode, getOrCreateTestUser } from '../../src/lib/demo';
 
 export default function RequestSongScreen() {
   const router = useRouter();
   const { sid } = useLocalSearchParams<{ sid: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+
+  // Obtener user id al montar
+  React.useEffect(() => {
+    (async () => {
+      if (isTestMode()) {
+        const testProfile = await getOrCreateTestUser();
+        if (testProfile) setUserId(testProfile.id);
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) setUserId(user.id);
+      }
+    })();
+  }, []);
 
   const handleSongSelect = async (track: DeezerTrack) => {
-    if (isSubmitting) return;
+    if (isSubmitting || !userId) return;
     
     setIsSubmitting(true);
 
@@ -39,7 +54,7 @@ export default function RequestSongScreen() {
       // Datos de la canción para insertar
       const songData = {
         session_id: sid,
-        user_id: 'a0000001-0000-0000-0000-000000000001', // Usuario de ejemplo
+        user_id: userId,
         external_id: `deezer:${track.id}`,
         deezer_id: track.id,
         title: track.title,
