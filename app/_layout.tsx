@@ -10,19 +10,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { colors } from '../src/theme/colors';
 import { useAuthStore } from '../src/stores/authStore';
+import { isDemoMode, DEMO_USER as DEMO_PROFILE_DATA, DEMO_DJ } from '../src/lib/demo';
 
 // ═══════════════════════════════════════════════════════════
-// 🎯 DEMO MODE — Set to true to bypass auth for investor demo
+// 🎯 DEMO MODE — ?demo=true in URL or defaults to true
+// Real mode: ?demo=false → real auth, real data
 // ═══════════════════════════════════════════════════════════
-const DEMO_MODE = true;
 
 const DEMO_USER = {
-  id: 'demo-user-001',
+  id: DEMO_PROFILE_DATA.id,
   email: 'demo@whatssound.app',
   app_metadata: {},
-  user_metadata: {
-    display_name: 'Carlos Mendoza',
-  },
+  user_metadata: { display_name: DEMO_PROFILE_DATA.display_name },
   aud: 'authenticated',
   created_at: '2024-01-15T10:00:00Z',
 } as any;
@@ -35,15 +34,15 @@ const DEMO_SESSION = {
 } as any;
 
 const DEMO_PROFILE = {
-  id: 'demo-user-001',
-  username: 'carlosmendoza',
-  display_name: 'Carlos Mendoza',
-  bio: 'Amante de la música y DJ amateur 🎧',
+  id: DEMO_PROFILE_DATA.id,
+  username: DEMO_PROFILE_DATA.username,
+  display_name: DEMO_PROFILE_DATA.display_name,
+  bio: 'Aquí por la música 💃',
   avatar_url: null,
-  is_dj: true,
-  is_verified: true,
-  dj_name: 'DJ Carlos',
-  genres: ['Reggaetón', 'Latin House', 'Electrónica'],
+  is_dj: false,
+  is_verified: false,
+  dj_name: null,
+  genres: ['Reggaetón', 'Pop'],
   role: 'user',
 };
 
@@ -59,7 +58,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (DEMO_MODE) {
+    if (isDemoMode()) {
       // Bypass auth — inject demo user directly into store
       useAuthStore.setState({
         user: DEMO_USER,
@@ -74,7 +73,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (DEMO_MODE) return; // Skip auth routing in demo mode
+    if (isDemoMode()) return; // Skip auth routing in demo mode
     if (!initialized) return;
 
     const inAuthGroup = segments[0] === '(auth)';
@@ -86,7 +85,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [user, initialized, segments]);
 
-  if (!DEMO_MODE && !initialized) {
+  if (!isDemoMode() && !initialized) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.primary} />
