@@ -7,7 +7,7 @@ import { colors } from '../../src/theme/colors';
 const isWide = Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.innerWidth > 768 : true) : Dimensions.get('window').width > 768;
 
 // Only kike and angel can access the dashboard
-const ALLOWED_ADMINS = ['kike', 'angel', 'enrique'];
+const ALLOWED_ADMINS = ['kike', 'angel', 'enrique', 'leo'];
 
 function getAdminUser(): string | null {
   if (Platform.OS !== 'web') return null;

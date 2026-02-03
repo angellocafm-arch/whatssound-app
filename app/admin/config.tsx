@@ -5,6 +5,7 @@ import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { getAIConfig, setAIConfig, PROVIDER_MODELS, type AIConfig } from '../../src/lib/ai-provider';
+import { isSeedVisible, toggleSeedVisibility, deleteTestData, deleteAllData, getDataCounts } from '../../src/lib/admin-actions';
 
 const isWide = Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.innerWidth > 768 : true) : Dimensions.get('window').width > 768;
 
@@ -40,6 +41,53 @@ export default function ConfigPage() {
     setAiModel(config.model || '');
     setAiBaseUrl(config.baseUrl || '');
   }, []);
+
+  // Data management state
+  const [seedVisible, setSeedVisible] = useState(true);
+  const [dataCounts, setDataCounts] = useState({ seed: 0, test: 0, total: 0 });
+  const [actionResult, setActionResult] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<'test' | 'all' | null>(null);
+
+  useEffect(() => {
+    isSeedVisible().then(setSeedVisible);
+    getDataCounts().then(setDataCounts);
+  }, []);
+
+  const handleToggleSeed = async () => {
+    const newVal = !seedVisible;
+    const { ok } = await toggleSeedVisibility(newVal);
+    if (ok) {
+      setSeedVisible(newVal);
+      setActionResult(newVal ? '✅ Datos semilla activados' : '✅ Datos semilla ocultados');
+      setTimeout(() => setActionResult(''), 3000);
+    }
+  };
+
+  const handleDeleteTest = async () => {
+    if (confirmDelete !== 'test') { setConfirmDelete('test'); return; }
+    const { ok, deleted, error } = await deleteTestData();
+    setConfirmDelete(null);
+    if (ok) {
+      setActionResult(`✅ ${deleted} registros de prueba eliminados`);
+      getDataCounts().then(setDataCounts);
+    } else {
+      setActionResult(`❌ Error: ${error}`);
+    }
+    setTimeout(() => setActionResult(''), 4000);
+  };
+
+  const handleDeleteAll = async () => {
+    if (confirmDelete !== 'all') { setConfirmDelete('all'); return; }
+    const { ok, deleted, error } = await deleteAllData();
+    setConfirmDelete(null);
+    if (ok) {
+      setActionResult(`✅ ${deleted} registros eliminados — base de datos vacía`);
+      getDataCounts().then(setDataCounts);
+    } else {
+      setActionResult(`❌ Error: ${error}`);
+    }
+    setTimeout(() => setActionResult(''), 4000);
+  };
 
   const saveAIConfig = () => {
     setAIConfig({
@@ -209,17 +257,81 @@ export default function ConfigPage() {
         ))}
       </View>
 
-      {/* Danger Zone */}
-      <View style={[s.section, {borderColor: colors.error+'30'}]}>
-        <Text style={[s.sectionTitle, {color: colors.error}]}>⚠️ Zona de peligro</Text>
-        <TouchableOpacity style={s.dangerBtn}>
-          <Ionicons name="trash" size={16} color={colors.error}/>
-          <Text style={s.dangerText}>Limpiar cache</Text>
+      {/* Data Management — 3 Buttons */}
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>🗄️ Gestión de datos</Text>
+        <Text style={{...typography.caption, color: colors.textMuted, marginBottom: spacing.md}}>
+          Datos semilla: {dataCounts.seed} usuarios · Datos de prueba: {dataCounts.test} usuarios · Total: {dataCounts.total}
+        </Text>
+
+        {actionResult ? (
+          <View style={{backgroundColor: actionResult.startsWith('✅') ? colors.primary+'20' : colors.error+'20', padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.md}}>
+            <Text style={{color: actionResult.startsWith('✅') ? colors.primary : colors.error, fontSize: 14, fontWeight: '600'}}>{actionResult}</Text>
+          </View>
+        ) : null}
+
+        {/* Button 1: Toggle seed visibility */}
+        <TouchableOpacity onPress={handleToggleSeed} style={{
+          flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+          backgroundColor: seedVisible ? colors.primary+'15' : colors.surface,
+          padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.sm,
+          borderWidth: 1, borderColor: seedVisible ? colors.primary+'40' : colors.border,
+        }}>
+          <Ionicons name={seedVisible ? 'eye' : 'eye-off'} size={20} color={seedVisible ? colors.primary : colors.textMuted}/>
+          <View style={{flex: 1}}>
+            <Text style={{color: colors.textPrimary, fontWeight: '700', fontSize: 14}}>
+              {seedVisible ? '👁️ Datos semilla VISIBLES' : '🙈 Datos semilla OCULTOS'}
+            </Text>
+            <Text style={{color: colors.textMuted, fontSize: 12, marginTop: 2}}>
+              {seedVisible ? 'Los 15 usuarios y sesiones de demo aparecen en la app' : 'Solo se ven usuarios reales de pruebas'}
+            </Text>
+          </View>
+          <View style={{backgroundColor: seedVisible ? colors.primary : colors.textMuted, width: 48, height: 26, borderRadius: 13, justifyContent: 'center', padding: 2}}>
+            <View style={{width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', alignSelf: seedVisible ? 'flex-end' : 'flex-start'}} />
+          </View>
         </TouchableOpacity>
-        <TouchableOpacity style={s.dangerBtn}>
-          <Ionicons name="refresh" size={16} color={colors.error}/>
-          <Text style={s.dangerText}>Reset métricas demo</Text>
+
+        {/* Button 2: Delete test data */}
+        <TouchableOpacity onPress={handleDeleteTest} style={{
+          flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+          backgroundColor: confirmDelete === 'test' ? colors.warning+'20' : colors.surface,
+          padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.sm,
+          borderWidth: 1, borderColor: confirmDelete === 'test' ? colors.warning : colors.border,
+        }}>
+          <Ionicons name="trash-outline" size={20} color={colors.warning}/>
+          <View style={{flex: 1}}>
+            <Text style={{color: colors.textPrimary, fontWeight: '700', fontSize: 14}}>
+              {confirmDelete === 'test' ? '⚠️ Pulsa otra vez para confirmar' : '🧹 Borrar datos de prueba'}
+            </Text>
+            <Text style={{color: colors.textMuted, fontSize: 12, marginTop: 2}}>
+              Elimina los {dataCounts.test} usuarios de test y sus acciones. Mantiene datos semilla.
+            </Text>
+          </View>
         </TouchableOpacity>
+
+        {/* Button 3: Delete ALL */}
+        <TouchableOpacity onPress={handleDeleteAll} style={{
+          flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+          backgroundColor: confirmDelete === 'all' ? colors.error+'20' : colors.surface,
+          padding: spacing.md, borderRadius: borderRadius.md,
+          borderWidth: 1, borderColor: confirmDelete === 'all' ? colors.error : colors.error+'30',
+        }}>
+          <Ionicons name="nuclear" size={20} color={colors.error}/>
+          <View style={{flex: 1}}>
+            <Text style={{color: colors.error, fontWeight: '700', fontSize: 14}}>
+              {confirmDelete === 'all' ? '🚨 PULSA OTRA VEZ — ESTO BORRA TODO' : '💥 Borrar TODO (nuclear)'}
+            </Text>
+            <Text style={{color: colors.textMuted, fontSize: 12, marginTop: 2}}>
+              Elimina TODOS los datos. La base de datos queda vacía. Los datos semilla se pueden restaurar.
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {confirmDelete && (
+          <TouchableOpacity onPress={() => setConfirmDelete(null)} style={{alignItems: 'center', marginTop: spacing.sm}}>
+            <Text style={{color: colors.textMuted, fontSize: 13}}>Cancelar</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );

@@ -23,6 +23,7 @@ import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { supabase } from '../../src/lib/supabase';
+import { shouldShowSeed } from '../../src/lib/seed-filter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -203,11 +204,14 @@ export default function DiscoverScreen() {
   const loadFromDB = async () => {
     try {
       // Sessions
-      const { data: sess } = await supabase
+      const showSeed = await shouldShowSeed();
+      let sessQ = supabase
         .from('ws_sessions')
-        .select('id, name, genres, is_active, dj:ws_profiles!dj_id(dj_name, display_name), members:ws_session_members(id)')
+        .select('id, name, genres, is_active, is_seed, dj:ws_profiles!dj_id(dj_name, display_name), members:ws_session_members(id)')
         .eq('is_active', true)
         .order('started_at', { ascending: false });
+      if (!showSeed) sessQ = sessQ.eq('is_seed', false);
+      const { data: sess } = await sessQ;
       if (sess && sess.length > 0) {
         setDbSessions(sess.map((s: any) => ({
           id: s.id, name: s.name, dj: s.dj?.dj_name || s.dj?.display_name || 'DJ',
@@ -216,10 +220,12 @@ export default function DiscoverScreen() {
         })));
       }
       // DJs
-      const { data: djs } = await supabase
+      let djQ = supabase
         .from('ws_profiles')
-        .select('id, display_name, dj_name, genres, is_verified')
+        .select('id, display_name, dj_name, genres, is_verified, is_seed')
         .eq('is_dj', true);
+      if (!showSeed) djQ = djQ.eq('is_seed', false);
+      const { data: djs } = await djQ;
       if (djs && djs.length > 0) {
         const colors_arr = ['#25D366', '#53BDEB', '#FFA726', '#EF5350', '#AB47BC', '#26C6DA', '#66BB6A'];
         setDbDJs(djs.map((d: any, i: number) => ({

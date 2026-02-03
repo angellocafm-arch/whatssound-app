@@ -19,6 +19,7 @@ import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { supabase } from '../../src/lib/supabase';
+import { shouldShowSeed } from '../../src/lib/seed-filter';
 
 // ═══════════════════════════════════════════════════════════
 // Mock data for demo — realistic DJ sessions
@@ -139,16 +140,19 @@ export default function LiveScreen() {
     setLoading(true);
     try {
       // Try Supabase first
-      const { data, error } = await supabase
+      const showSeed = await shouldShowSeed();
+      let query = supabase
         .from('ws_sessions')
         .select(`
-          id, name, genres, is_active, started_at,
+          id, name, genres, is_active, started_at, is_seed,
           dj:ws_profiles!dj_id(display_name, dj_name),
           songs:ws_songs(title, artist, status),
           members:ws_session_members(id)
         `)
         .eq('is_active', true)
         .order('started_at', { ascending: false });
+      if (!showSeed) query = query.eq('is_seed', false);
+      const { data, error } = await query;
 
       if (!error && data && data.length > 0) {
         const mapped = data.map((s: any) => ({
