@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
+import { supabase } from '../../src/lib/supabase';
 
 // ═══════════════════════════════════════════════════════════
 // Mock data for demo — realistic DJ sessions
@@ -136,7 +137,37 @@ export default function LiveScreen() {
 
   const loadSessions = async () => {
     setLoading(true);
-    // DEMO MODE: Always use mock data for investor demo
+    try {
+      // Try Supabase first
+      const { data, error } = await supabase
+        .from('ws_sessions')
+        .select(`
+          id, name, genres, is_active, started_at,
+          dj:ws_profiles!dj_id(display_name, dj_name),
+          songs:ws_songs(title, artist, status),
+          members:ws_session_members(id)
+        `)
+        .eq('is_active', true)
+        .order('started_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const mapped = data.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          dj_display_name: s.dj?.dj_name || s.dj?.display_name || 'DJ',
+          genre: s.genres?.[0] || 'Mix',
+          listener_count: s.members?.length || 0,
+          current_song: s.songs?.find((sg: any) => sg.status === 'playing')?.title || 'En pausa',
+          current_artist: s.songs?.find((sg: any) => sg.status === 'playing')?.artist || '',
+        }));
+        setSessions(mapped);
+        setLoading(false);
+        return;
+      }
+    } catch (e) {
+      // Supabase failed, use mocks
+    }
+    // Fallback: mock data for demo
     setSessions(MOCK_SESSIONS);
     setLoading(false);
   };
