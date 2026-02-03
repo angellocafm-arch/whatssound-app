@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '../theme/colors';
+import { colors } from '../theme/colors';
 
 interface AudioPreviewProps {
   previewUrl?: string;
@@ -67,7 +67,9 @@ export default function AudioPreview({
       }
 
       setIsLoading(true);
-      const audio = new Audio(previewUrl);
+      const AudioCtor = (globalThis as any).Audio || window.Audio;
+      if (!AudioCtor) { onError?.('Audio not supported'); setIsLoading(false); return; }
+      const audio = new AudioCtor(previewUrl);
       audio.volume = 0.8;
       audioRef.current = audio;
 
@@ -114,9 +116,9 @@ export default function AudioPreview({
         disabled={isLoading}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={colors.text.primary} />
+          <ActivityIndicator size="small" color={colors.textPrimary} />
         ) : (
-          <Ionicons name={isPlaying ? 'pause' : 'play'} size={iconSize} color={colors.text.primary} />
+          <Ionicons name={isPlaying ? 'pause' : 'play'} size={iconSize} color={colors.textPrimary} />
         )}
       </TouchableOpacity>
 
@@ -140,10 +142,10 @@ const styles = StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   playButton: { backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' },
   infoContainer: { flex: 1, gap: 4 },
-  trackTitle: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
-  artistName: { fontSize: 12, color: colors.text.secondary },
+  trackTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  artistName: { fontSize: 12, color: colors.textSecondary },
   progressContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  progressBar: { flex: 1, height: 3, backgroundColor: colors.surface.elevated, borderRadius: 1.5, overflow: 'hidden' },
+  progressBar: { flex: 1, height: 3, backgroundColor: colors.surfaceLight, borderRadius: 1.5, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: colors.primary },
-  timeText: { fontSize: 10, color: colors.text.secondary, minWidth: 60 },
+  timeText: { fontSize: 10, color: colors.textSecondary, minWidth: 60 },
 });
