@@ -1,6 +1,6 @@
 /**
  * WhatsSound — Tab Layout
- * 5 tabs: En Vivo, Grupos, Historial, Descubrir, Ajustes
+ * 5 tabs: Chats, En Vivo, Grupos, Descubrir, Perfil
  */
 
 import React from 'react';
@@ -12,7 +12,7 @@ import { typography } from '../../src/theme/typography';
 export default function TabLayout() {
   return (
     <Tabs
-      initialRouteName="live"
+      initialRouteName="chats"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -29,6 +29,15 @@ export default function TabLayout() {
         },
       }}
     >
+      <Tabs.Screen
+        name="chats"
+        options={{
+          title: 'Chats',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubbles" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="live"
         options={{
@@ -50,15 +59,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="history"
-        options={{
-          title: 'Historial',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="discover"
         options={{
           title: 'Descubrir',
@@ -70,14 +70,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Ajustes',
+          title: 'Perfil',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-sharp" size={size} color={color} />
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />
-      {/* Hidden: index redirects to live */}
+      {/* Hidden: index redirects to chats */}
       <Tabs.Screen name="index" options={{ href: null }} />
+      {/* Keep history accessible but not as tab */}
+      <Tabs.Screen name="history" options={{ href: null }} />
     </Tabs>
   );
 }

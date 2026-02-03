@@ -1,6 +1,6 @@
 /**
- * WhatsSound — Chat 1 a 1
- * Conversación privada estilo WhatsApp — datos reales desde Supabase
+ * WhatsSound — Conversación Privada
+ * Chat individual estilo WhatsApp con realtime
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -8,302 +8,571 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { Avatar } from '../../src/components/ui/Avatar';
+import { supabase } from '../../src/lib/supabase';
+import { useAuthStore } from '../../src/stores/authStore';
+import { isDemoMode, isTestMode } from '../../src/lib/demo';
 
-const SUPABASE_URL = 'https://xyehncvvvprrqwnsefcr.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+// Mensajes mock para modo demo
+const MOCK_MESSAGES = [
+  {
+    id: 'm1',
+    content: 'Hola! ¿Cómo estás?',
+    senderId: 'other',
+    senderName: 'DJ Carlos Madrid',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+    isRead: true,
+  },
+  {
+    id: 'm2',
+    content: 'Muy bien, gracias! ¿Qué tal tu sesión de ayer?',
+    senderId: 'self',
+    senderName: 'Tú',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000 + 5 * 60 * 1000), // 1h 55m ago
+    isRead: true,
+  },
+  {
+    id: 'm3',
+    content: 'Increíble! Tuvimos casi 100 personas conectadas 🎉',
+    senderId: 'other',
+    senderName: 'DJ Carlos Madrid',
+    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
+    isRead: true,
+  },
+  {
+    id: 'm4',
+    content: 'Oye, ¿vas a la sesión de esta noche?',
+    senderId: 'other',
+    senderName: 'DJ Carlos Madrid',
+    timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 min ago
+    isRead: false,
+  },
+];
 
-function getHeaders() {
-  let token = '';
-  try { token = JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').access_token || ''; } catch {}
-  return { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token || ANON_KEY}`, 'Content-Type': 'application/json' };
+const MOCK_CONTACT = {
+  id: 'other',
+  name: 'DJ Carlos Madrid',
+  avatar: null,
+  username: 'carlosmadrid',
+  isOnline: true,
+};
+
+function formatMessageTime(date: Date): string {
+  return date.toLocaleTimeString('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 }
 
-function getCurrentUserId(): string {
-  try { return JSON.parse(localStorage.getItem('sb-xyehncvvvprrqwnsefcr-auth-token') || '{}').user?.id || ''; } catch { return ''; }
+interface MessageBubbleProps {
+  message: any;
+  isOwn: boolean;
+  showTime?: boolean;
 }
 
-interface Message {
-  id: string;
-  text: string;
-  time: string;
-  isMe: boolean;
-  senderName: string;
-  read?: boolean;
-}
-
-const MessageBubble = ({ msg }: { msg: Message }) => (
-  <View style={[styles.bubbleRow, msg.isMe && styles.bubbleRowMe]}>
-    <View style={[styles.bubble, msg.isMe ? styles.bubbleMe : styles.bubbleOther]}>
-      {!msg.isMe && <Text style={styles.senderName}>{msg.senderName}</Text>}
-      <Text style={styles.msgText}>{msg.text}</Text>
-      <View style={styles.metaRow}>
-        <Text style={styles.msgTime}>{msg.time}</Text>
-        {msg.isMe && (
-          <Ionicons
-            name="checkmark-done"
-            size={14}
-            color={colors.primary}
-          />
-        )}
+const MessageBubble = ({ message, isOwn, showTime }: MessageBubbleProps) => {
+  return (
+    <View style={[s.messageContainer, isOwn ? s.messageOwn : s.messageOther]}>
+      <View style={[s.bubble, isOwn ? s.bubbleOwn : s.bubbleOther]}>
+        <Text style={[s.messageText, isOwn ? s.messageTextOwn : s.messageTextOther]}>
+          {message.content}
+        </Text>
+        <View style={s.messageFooter}>
+          <Text style={[s.messageTime, isOwn ? s.messageTimeOwn : s.messageTimeOther]}>
+            {formatMessageTime(message.timestamp)}
+          </Text>
+          {isOwn && (
+            <View style={s.readStatus}>
+              <Ionicons 
+                name={message.isRead ? 'checkmark-done' : 'checkmark'} 
+                size={14} 
+                color={message.isRead ? colors.primary : colors.textMuted} 
+              />
+            </View>
+          )}
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 export default function ChatScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [chatName, setChatName] = useState('Chat');
-  const [sending, setSending] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const currentUserId = getCurrentUserId();
-
-  // Ionicons font fix for web
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      const s = document.createElement('style');
-      s.textContent = '@font-face{font-family:"Ionicons";src:url("/Ionicons.ttf") format("truetype")}';
-      if (!document.querySelector('style[data-ionicons-chat]')) {
-        s.setAttribute('data-ionicons-chat', '1');
-        document.head.appendChild(s);
-      }
-    }
-  }, []);
+  const { id } = useLocalSearchParams();
+  const { user } = useAuthStore();
+  const scrollViewRef = useRef<ScrollView>(null);
+  
+  const [messages, setMessages] = useState<any[]>([]);
+  const [contact, setContact] = useState<any>(null);
+  const [messageText, setMessageText] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadChatInfo();
-    loadMessages();
-    // Poll every 3 seconds
-    pollingRef.current = setInterval(loadMessages, 3000);
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+    loadChatData();
+    setupRealtimeSubscription();
   }, [id]);
 
-  const loadChatInfo = async () => {
-    try {
-      // Get chat details
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/chats?id=eq.${id}&select=*`, { headers: getHeaders() });
-      const chats = await res.json();
-      const chat = chats?.[0];
-      if (!chat) return;
+  const loadChatData = async () => {
+    if (isDemoMode()) {
+      // Modo demo: usar datos mock
+      setContact(MOCK_CONTACT);
+      setMessages(MOCK_MESSAGES);
+      return;
+    }
 
-      if (chat.type === 'group') {
-        setChatName(chat.name || 'Grupo');
-      } else {
-        // Direct chat: find the other member's name
-        const membersRes = await fetch(`${SUPABASE_URL}/rest/v1/chat_members?chat_id=eq.${id}&user_id=neq.${currentUserId}&select=user_id`, { headers: getHeaders() });
-        const members = await membersRes.json();
-        if (members?.[0]?.user_id) {
-          const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${members[0].user_id}&select=display_name`, { headers: getHeaders() });
-          const profiles = await profileRes.json();
-          setChatName(profiles?.[0]?.display_name || 'Chat');
-        }
+    if (!user?.id || !id) return;
+
+    try {
+      setLoading(true);
+
+      // Cargar información de la conversación
+      const { data: conversation } = await supabase
+        .from('ws_conversations')
+        .select(`
+          id,
+          type,
+          name,
+          members:ws_conversation_members(
+            user_id,
+            profile:ws_profiles(id, display_name, username, avatar_url)
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (!conversation) {
+        Alert.alert('Error', 'Conversación no encontrada');
+        router.back();
+        return;
       }
-    } catch (e) {
-      console.error('Error loading chat info:', e);
+
+      // Encontrar el contacto (no soy yo)
+      const contactMember = conversation.members?.find((m: any) => m.user_id !== user.id);
+      if (contactMember) {
+        setContact({
+          id: contactMember.user_id,
+          name: contactMember.profile?.display_name || 'Usuario',
+          avatar: contactMember.profile?.avatar_url,
+          username: contactMember.profile?.username,
+          isOnline: false, // TODO: implementar estado online
+        });
+      }
+
+      // Cargar mensajes
+      const { data: messagesData } = await supabase
+        .from('ws_private_messages')
+        .select(`
+          id,
+          content,
+          sender_id,
+          created_at,
+          is_read,
+          type
+        `)
+        .eq('conversation_id', id)
+        .order('created_at', { ascending: true });
+
+      if (messagesData) {
+        const formattedMessages = messagesData.map((msg: any) => ({
+          id: msg.id,
+          content: msg.content,
+          senderId: msg.sender_id === user.id ? 'self' : msg.sender_id,
+          senderName: msg.sender_id === user.id ? 'Tú' : contact?.name || 'Usuario',
+          timestamp: new Date(msg.created_at),
+          isRead: msg.is_read,
+          type: msg.type || 'text',
+        }));
+        setMessages(formattedMessages);
+      }
+
+      // Marcar mensajes como leídos
+      await supabase
+        .from('ws_private_messages')
+        .update({ is_read: true })
+        .eq('conversation_id', id)
+        .neq('sender_id', user.id);
+
+    } catch (error) {
+      console.error('Error loading chat data:', error);
+      // Fallback a datos mock en test mode
+      if (isTestMode()) {
+        setContact(MOCK_CONTACT);
+        setMessages(MOCK_MESSAGES);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadMessages = async () => {
-    try {
-      // Fetch messages with user profile info
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/chat_messages?chat_id=eq.${id}&select=id,content,created_at,user_id,is_system&order=created_at.asc`,
-        { headers: getHeaders() }
-      );
-      const msgs = await res.json();
-      if (!Array.isArray(msgs)) { setLoading(false); return; }
+  const setupRealtimeSubscription = () => {
+    if (isDemoMode()) return;
 
-      // Get unique user IDs for display names
-      const userIds = [...new Set(msgs.map((m: any) => m.user_id).filter(Boolean))];
-      const profileMap: Record<string, string> = {};
+    const channel = supabase
+      .channel(`chat-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ws_private_messages',
+          filter: `conversation_id=eq.${id}`,
+        },
+        (payload) => {
+          const newMessage = {
+            id: payload.new.id,
+            content: payload.new.content,
+            senderId: payload.new.sender_id === user?.id ? 'self' : payload.new.sender_id,
+            senderName: payload.new.sender_id === user?.id ? 'Tú' : contact?.name || 'Usuario',
+            timestamp: new Date(payload.new.created_at),
+            isRead: payload.new.is_read,
+            type: payload.new.type || 'text',
+          };
+          
+          setMessages(prev => [...prev, newMessage]);
+          
+          // Auto scroll to bottom
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
 
-      if (userIds.length > 0) {
-        const profileRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/profiles?id=in.(${userIds.join(',')})&select=id,display_name`,
-          { headers: getHeaders() }
-        );
-        const profiles = await profileRes.json();
-        if (Array.isArray(profiles)) {
-          profiles.forEach((p: any) => { profileMap[p.id] = p.display_name || 'Usuario'; });
+          // Marcar como leído si no es nuestro mensaje
+          if (payload.new.sender_id !== user?.id) {
+            supabase
+              .from('ws_private_messages')
+              .update({ is_read: true })
+              .eq('id', payload.new.id);
+          }
         }
-      }
+      )
+      .subscribe();
 
-      const formatted: Message[] = msgs.map((m: any) => ({
-        id: m.id,
-        text: m.content || '',
-        time: m.created_at ? new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '',
-        isMe: m.user_id === currentUserId,
-        senderName: profileMap[m.user_id] || 'Usuario',
-        read: true,
-      }));
-
-      setMessages(formatted);
-    } catch (e) {
-      console.error('Error loading messages:', e);
-    }
-    setLoading(false);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   };
 
   const sendMessage = async () => {
-    const text = message.trim();
-    if (!text || sending || !currentUserId) return;
-    setSending(true);
-    setMessage('');
+    if (!messageText.trim() || !user?.id || !id) return;
+
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      content: messageText.trim(),
+      senderId: 'self',
+      senderName: 'Tú',
+      timestamp: new Date(),
+      isRead: false,
+      type: 'text',
+    };
+
+    const messageToSend = messageText.trim();
+    setMessageText('');
+    setMessages(prev => [...prev, tempMessage]);
+
+    // Auto scroll to bottom
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+
+    if (isDemoMode()) {
+      // Modo demo: solo agregar mensaje visualmente
+      return;
+    }
 
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
-        method: 'POST',
-        headers: { ...getHeaders(), 'Prefer': 'return=representation' },
-        body: JSON.stringify({
-          chat_id: id,
-          user_id: currentUserId,
-          content: text,
-          is_system: false,
-        }),
-      });
-      await loadMessages();
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    } catch (e) {
-      console.error('Error sending message:', e);
+      // Enviar mensaje real a Supabase
+      const { data, error } = await supabase
+        .from('ws_private_messages')
+        .insert({
+          conversation_id: id,
+          sender_id: user.id,
+          content: messageToSend,
+          type: 'text',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Actualizar mensaje temporal con el ID real
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempMessage.id 
+          ? { ...msg, id: data.id }
+          : msg
+      ));
+
+      // Actualizar timestamp de la conversación
+      await supabase
+        .from('ws_conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Remover mensaje temporal en caso de error
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      Alert.alert('Error', 'No se pudo enviar el mensaje');
     }
-    setSending(false);
   };
 
-  if (loading) {
+  const handleBackPress = () => {
+    router.back();
+  };
+
+  if (!contact) {
     return (
-      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[s.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={[typography.body, { color: colors.textSecondary }]}>
+          Cargando conversación...
+        </Text>
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <KeyboardAvoidingView 
+      style={s.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+      <View style={s.header}>
+        <TouchableOpacity
+          style={s.backButton}
+          onPress={handleBackPress}
+          activeOpacity={0.7}
+        >
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Avatar name={chatName} size="sm" />
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{chatName}</Text>
-          <Text style={styles.headerStatus}>en línea</Text>
+
+        <View style={s.contactInfo}>
+          <Avatar size={40} name={contact.name} uri={contact.avatar} />
+          <View style={s.contactDetails}>
+            <Text style={s.contactName} numberOfLines={1}>
+              {contact.name}
+            </Text>
+            <Text style={s.contactStatus}>
+              {contact.isOnline ? 'en línea' : 'última vez recientemente'}
+            </Text>
+          </View>
         </View>
-        <TouchableOpacity>
-          <Ionicons name="call-outline" size={22} color={colors.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="videocam-outline" size={22} color={colors.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="ellipsis-vertical" size={22} color={colors.textSecondary} />
-        </TouchableOpacity>
+
+        <View style={s.headerActions}>
+          <TouchableOpacity style={s.headerButton} activeOpacity={0.7}>
+            <Ionicons name="call" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.headerButton} activeOpacity={0.7}>
+            <Ionicons name="videocam" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => <MessageBubble msg={item} />}
-        contentContainerStyle={styles.messageList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        ListEmptyComponent={
-          <View style={{ alignItems: 'center', marginTop: 40 }}>
-            <Ionicons name="chatbubbles-outline" size={48} color={colors.textMuted} />
-            <Text style={{ ...typography.body, color: colors.textMuted, marginTop: spacing.md }}>
-              No hay mensajes aún. ¡Envía el primero!
-            </Text>
-          </View>
-        }
-      />
+      <ScrollView
+        ref={scrollViewRef}
+        style={s.messagesContainer}
+        contentContainerStyle={s.messagesContent}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
+      >
+        {messages.map((message) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isOwn={message.senderId === 'self'}
+          />
+        ))}
+      </ScrollView>
 
       {/* Input */}
-      <View style={styles.inputBar}>
-        <TouchableOpacity>
-          <Ionicons name="add-circle" size={28} color={colors.primary} />
-        </TouchableOpacity>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Mensaje"
-            placeholderTextColor={colors.textMuted}
-            value={message}
-            onChangeText={setMessage}
-            onSubmitEditing={sendMessage}
-          />
-          <TouchableOpacity>
-            <Ionicons name="camera-outline" size={22} color={colors.textMuted} />
+      <View style={s.inputContainer}>
+        <View style={s.inputRow}>
+          <TouchableOpacity style={s.attachButton} activeOpacity={0.7}>
+            <Ionicons name="add" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity>
-            <Ionicons name="happy-outline" size={22} color={colors.textMuted} />
+          
+          <TextInput
+            style={s.textInput}
+            placeholder="Escribe un mensaje"
+            placeholderTextColor={colors.textMuted}
+            value={messageText}
+            onChangeText={setMessageText}
+            multiline
+            maxLength={1000}
+          />
+          
+          <TouchableOpacity
+            style={[s.sendButton, messageText.trim() && s.sendButtonActive]}
+            onPress={sendMessage}
+            disabled={!messageText.trim()}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={messageText.trim() ? "send" : "mic"} 
+              size={20} 
+              color={messageText.trim() ? colors.textOnPrimary : colors.textSecondary} 
+            />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.sendBtn} onPress={sendMessage} disabled={sending}>
-          {message.trim() ? (
-            <Ionicons name="send" size={20} color={colors.textOnPrimary} />
-          ) : (
-            <Ionicons name="mic" size={22} color={colors.textOnPrimary} />
-          )}
-        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
-    backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.divider,
+const s = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  headerInfo: { flex: 1 },
-  headerName: { ...typography.bodyBold, color: colors.textPrimary },
-  headerStatus: { ...typography.caption, color: colors.primary },
-  messageList: { padding: spacing.sm, gap: spacing.xs },
-  bubbleRow: { flexDirection: 'row', marginBottom: spacing.xs },
-  bubbleRowMe: { flexDirection: 'row-reverse' },
-  bubble: { maxWidth: '75%', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.lg },
-  bubbleMe: { backgroundColor: colors.primary + '30', borderBottomRightRadius: 4 },
-  bubbleOther: { backgroundColor: colors.surface, borderBottomLeftRadius: 4 },
-  senderName: { ...typography.captionBold, color: colors.primary, marginBottom: 2 },
-  msgText: { ...typography.body, color: colors.textPrimary },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 2 },
-  msgTime: { ...typography.caption, color: colors.textMuted, fontSize: 10 },
-  inputBar: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
-    backgroundColor: colors.surface, borderTopWidth: 0.5, borderTopColor: colors.divider,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: spacing.base,
+  },
+  backButton: {
+    padding: spacing.xs,
+  },
+  contactInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  contactDetails: {
+    flex: 1,
+  },
+  contactName: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    fontSize: 16,
+  },
+  contactStatus: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  headerButton: {
+    padding: spacing.xs,
+  },
+  messagesContainer: {
+    flex: 1,
+  },
+  messagesContent: {
+    padding: spacing.base,
+    gap: spacing.xs,
+  },
+  messageContainer: {
+    maxWidth: '80%',
+    marginVertical: 2,
+  },
+  messageOwn: {
+    alignSelf: 'flex-end',
+  },
+  messageOther: {
+    alignSelf: 'flex-start',
+  },
+  bubble: {
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+  },
+  bubbleOwn: {
+    backgroundColor: colors.bubbleOwn,
+    borderBottomRightRadius: 4,
+  },
+  bubbleOther: {
+    backgroundColor: colors.bubbleOther,
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    ...typography.body,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  messageTextOwn: {
+    color: colors.textPrimary,
+  },
+  messageTextOther: {
+    color: colors.textPrimary,
+  },
+  messageFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    gap: 4,
+  },
+  messageTime: {
+    ...typography.caption,
+    fontSize: 11,
+  },
+  messageTimeOwn: {
+    color: colors.textMuted,
+  },
+  messageTimeOther: {
+    color: colors.textMuted,
+  },
+  readStatus: {
+    marginLeft: 2,
   },
   inputContainer: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.surfaceLight, borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.md, gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
   },
-  input: { flex: 1, ...typography.body, color: colors.textPrimary, paddingVertical: spacing.sm },
-  sendBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm,
+  },
+  attachButton: {
+    padding: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  textInput: {
+    flex: 1,
+    ...typography.body,
+    color: colors.textPrimary,
+    backgroundColor: colors.surfaceLight,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    maxHeight: 100,
+    fontSize: 16,
+  },
+  sendButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  sendButtonActive: {
+    backgroundColor: colors.primary,
   },
 });

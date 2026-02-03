@@ -37,6 +37,10 @@ const DEFAULT_METRICS = {
   newUsersToday: 0,
   newUsersWeek: 0,
   retentionD7: '-',
+  // New chat metrics
+  privateMessages: 0,
+  conversations: 0,
+  contacts: 0,
 };
 
 const RECENT_SESSIONS = [
@@ -115,6 +119,10 @@ export default function AdminDashboard() {
           { data: tipsData },
           { data: activeSessions },
           { data: recentMembers },
+          // New chat metrics
+          { count: privateMessagesCount },
+          { count: conversationsCount },
+          { count: contactsCount },
         ] = await Promise.all([
           supabase.from('ws_profiles').select('*', { count: 'exact', head: true }),
           supabase.from('ws_sessions').select('*', { count: 'exact', head: true }),
@@ -123,6 +131,10 @@ export default function AdminDashboard() {
           supabase.from('ws_tips').select('amount, status').eq('status', 'completed'),
           supabase.from('ws_sessions').select('*, dj:ws_profiles!dj_id(dj_name), members:ws_session_members(id), songs:ws_songs(id)').eq('is_active', true),
           supabase.from('ws_session_members').select('*, profile:ws_profiles!user_id(display_name)').is('left_at', null).order('joined_at', { ascending: false }).limit(10),
+          // New chat tables
+          supabase.from('ws_private_messages').select('*', { count: 'exact', head: true }),
+          supabase.from('ws_conversations').select('*', { count: 'exact', head: true }),
+          supabase.from('ws_contacts').select('*', { count: 'exact', head: true }),
         ]);
 
         const totalTips = tipsData?.reduce((s: number, t: any) => s + Number(t.amount), 0) || 0;
@@ -145,6 +157,10 @@ export default function AdminDashboard() {
           newUsersToday: userCount || 0,
           newUsersWeek: userCount || 0,
           retentionD7: '68%',
+          // New chat metrics
+          privateMessages: privateMessagesCount || 0,
+          conversations: conversationsCount || 0,
+          contacts: contactsCount || 0,
         });
 
         if (activeSessions && activeSessions.length > 0) {
@@ -202,6 +218,10 @@ export default function AdminDashboard() {
           <StatCard icon="cash" iconColor={colors.warning} value={METRICS.tipsTotal} label="Propinas total" trend="+67%" />
           <StatCard icon="person-add" iconColor="#34D399" value={METRICS.newUsersToday} label="Nuevos hoy" />
           <StatCard icon="trending-up" iconColor="#F472B6" value={METRICS.retentionD7} label="Retención D7" />
+          {/* New chat metrics */}
+          <StatCard icon="chatbubble-ellipses" iconColor="#8B5CF6" value={METRICS.privateMessages} label="Mensajes privados" />
+          <StatCard icon="people-circle" iconColor="#06B6D4" value={METRICS.conversations} label="Conversaciones" />
+          <StatCard icon="person-circle" iconColor="#10B981" value={METRICS.contacts} label="Contactos" />
         </View>
 
         {/* Live Sessions */}
