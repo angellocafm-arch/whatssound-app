@@ -3,7 +3,7 @@
  * Moderación de usuarios: VIP, silenciar, expulsar
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,15 +11,18 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
+import { supabase } from '../../src/lib/supabase';
+import { useLocalSearchParams } from 'expo-router';
 
 // ─── Types ──────────────────────────────────────────────────
-type UserRole = 'listener' | 'vip' | 'muted';
+type UserRole = 'listener' | 'vip' | 'muted' | 'dj' | 'mod';
 type PeopleFilter = 'all' | 'vip' | 'muted';
 
 interface SessionUser {
@@ -114,8 +117,56 @@ const UserCard = ({ user, onToggleVIP, onToggleMute, onKick }: {
 // ─── Main Component ─────────────────────────────────────────
 export default function DJPeopleScreen() {
   const router = useRouter();
-  const [users, setUsers] = useState(MOCK_USERS);
+  const params = useLocalSearchParams<{ sessionId?: string }>();
+  const [users, setUsers] = useState<SessionUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<PeopleFilter>('all');
+
+  // Cargar usuarios desde Supabase
+  React.useEffect(() => {
+    if (!params.sessionId) {
+      setUsers(MOCK_USERS);
+      setLoading(false);
+      return;
+    }
+
+    const loadUsers = async () => {
+      const { data, error } = await supabase
+        .from('ws_session_members')
+        .select(`
+          id, role, joined_at,
+          user:ws_profiles!user_id(id, display_name, avatar_url)
+        `)
+        .eq('session_id', params.sessionId)
+        .is('left_at', null);
+
+      if (!error && data && data.length > 0) {
+        setUsers(data.map((m: any, i: number) => ({
+          id: m.user?.id || m.id,
+          name: m.user?.display_name || 'Usuario',
+          avatar: ['👩‍🦰', '🧑', '👩', '🧔', '👱‍♀️', '🧑‍🦱', '👩‍🦳', '👨'][i % 8],
+          role: (m.role || 'listener') as UserRole,
+          songsRequested: 0,
+          tipsGiven: 0,
+          joinedAt: new Date(m.joined_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          isOnline: true,
+        })));
+      } else {
+        setUsers(MOCK_USERS);
+      }
+      setLoading(false);
+    };
+
+    loadUsers();
+
+    // Suscripción realtime
+    const channel = supabase
+      .channel(`members:${params.sessionId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ws_session_members', filter: `session_id=eq.${params.sessionId}` }, () => loadUsers())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [params.sessionId]);
 
   const counts = {
     all: users.length,
@@ -132,20 +183,29 @@ export default function DJPeopleScreen() {
     ? users.filter(u => u.role === 'vip')
     : users.filter(u => u.role === 'muted');
 
-  const toggleVIP = (id: string) => {
-    setUsers(prev => prev.map(u =>
-      u.id === id ? { ...u, role: (u.role === 'vip' ? 'listener' : 'vip') as UserRole } : u
-    ));
+  const toggleVIP = async (id: string) => {
+    const user = users.find(u => u.id === id);
+    const newRole = user?.role === 'vip' ? 'listener' : 'vip';
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole as UserRole } : u));
+    if (params.sessionId) {
+      await supabase.from('ws_session_members').update({ role: newRole }).eq('session_id', params.sessionId).eq('user_id', id);
+    }
   };
 
-  const toggleMute = (id: string) => {
-    setUsers(prev => prev.map(u =>
-      u.id === id ? { ...u, role: (u.role === 'muted' ? 'listener' : 'muted') as UserRole } : u
-    ));
+  const toggleMute = async (id: string) => {
+    const user = users.find(u => u.id === id);
+    const newRole = user?.role === 'muted' ? 'listener' : 'muted';
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole as UserRole } : u));
+    if (params.sessionId) {
+      await supabase.from('ws_session_members').update({ role: newRole }).eq('session_id', params.sessionId).eq('user_id', id);
+    }
   };
 
-  const kickUser = (id: string) => {
+  const kickUser = async (id: string) => {
     setUsers(prev => prev.filter(u => u.id !== id));
+    if (params.sessionId) {
+      await supabase.from('ws_session_members').update({ left_at: new Date().toISOString() }).eq('session_id', params.sessionId).eq('user_id', id);
+    }
   };
 
   return (
