@@ -16,6 +16,7 @@ import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { supabase } from '../../src/lib/supabase';
+import AudioPreview from '../../src/components/AudioPreview';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -184,15 +185,27 @@ export default function SessionScreen() {
   // Use DB data if available
   const activeSession = sessionData || SESSION;
   const activeQueue = dbQueue.length > 0 ? dbQueue.map((s: any) => ({
-    id: s.id, title: s.title, artist: s.artist, art: '', by: s.requester?.display_name || '??',
-    votes: s.vote_count, dur: fmtTime(Math.round(s.duration_ms / 1000)),
+    id: s.id, 
+    title: s.title, 
+    artist: s.artist, 
+    art: s.cover_url || '', 
+    preview: s.preview_url || '',
+    album: s.album_name || '',
+    by: s.requester?.display_name || '??',
+    votes: s.vote_count, 
+    dur: fmtTime(Math.round(s.duration_ms / 1000)),
   })) : QUEUE;
   const activeChat = dbChat.length > 0 ? dbChat : msgs;
   const activePeople = dbPeople.length > 0 ? dbPeople : PEOPLE;
   const activeNow = dbQueue.find((s: any) => s.status === 'playing');
   const nowPlaying = activeNow ? {
-    title: activeNow.title, artist: activeNow.artist, album: '',
-    art: '', duration: Math.round(activeNow.duration_ms / 1000), currentTime: 0,
+    title: activeNow.title, 
+    artist: activeNow.artist, 
+    album: activeNow.album_name || '',
+    art: activeNow.cover_url || '', 
+    preview: activeNow.preview_url || '',
+    duration: Math.round(activeNow.duration_ms / 1000), 
+    currentTime: 0,
   } : NOW;
 
   useEffect(() => {
@@ -250,16 +263,32 @@ export default function SessionScreen() {
     <ScrollView style={{flex:1}} contentContainerStyle={{alignItems:'center',paddingBottom:spacing['3xl'],paddingTop:spacing.sm}}>
       {/* Art */}
       <View style={s.artWrap}>
-        <View style={[s.artImg, {backgroundColor: colors.primary + '33', justifyContent:'center', alignItems:'center'}]}>
-          <Ionicons name="musical-notes" size={80} color={colors.primary} />
-          <Text style={{color: colors.textSecondary, fontSize: 12, marginTop: 8}}>{nowPlaying.artist}</Text>
-        </View>
+        {nowPlaying.art ? (
+          <Image source={{ uri: nowPlaying.art }} style={s.artImg} />
+        ) : (
+          <View style={[s.artImg, {backgroundColor: colors.primary + '33', justifyContent:'center', alignItems:'center'}]}>
+            <Ionicons name="musical-notes" size={80} color={colors.primary} />
+          </View>
+        )}
         <View style={s.artGlow} />
       </View>
       {/* Info */}
       <Text style={s.pTitle}>{nowPlaying.title}</Text>
       <Text style={s.pArtist}>{nowPlaying.artist}</Text>
       <Text style={s.pAlbum}>{nowPlaying.album}</Text>
+      
+      {/* Audio Preview */}
+      {nowPlaying.preview && (
+        <View style={{marginTop: spacing.lg, alignItems: 'center'}}>
+          <AudioPreview 
+            previewUrl={nowPlaying.preview}
+            trackTitle={nowPlaying.title}
+            artistName={nowPlaying.artist}
+            size="large"
+            showTitle={false}
+          />
+        </View>
+      )}
       {/* Progress */}
       <View style={s.progWrap}>
         <View style={s.progTrack}>
@@ -296,7 +325,11 @@ export default function SessionScreen() {
         {activeQueue.slice(0,3).map((q,i) => (
           <View key={q.id} style={s.upNextItem}>
             <Text style={s.upNextNum}>{i+1}</Text>
-            <View style={[s.upNextArt, {backgroundColor: colors.primary+"22", justifyContent:"center", alignItems:"center"}]}><Ionicons name="musical-note" size={16} color={colors.primary} /></View>
+            {q.art ? (
+              <Image source={{ uri: q.art }} style={s.upNextArt} />
+            ) : (
+              <View style={[s.upNextArt, {backgroundColor: colors.primary+"22", justifyContent:"center", alignItems:"center"}]}><Ionicons name="musical-note" size={16} color={colors.primary} /></View>
+            )}
             <View style={{flex:1}}><Text style={s.upNextTitle} numberOfLines={1}>{q.title}</Text><Text style={s.upNextArtist} numberOfLines={1}>{q.artist}</Text></View>
             <Text style={{fontSize:12}}>🔥 {q.votes}</Text>
           </View>
@@ -355,7 +388,11 @@ export default function SessionScreen() {
     <View style={{flex:1}}>
       <View style={s.qNowRow}><View style={s.qNowDot}/><Text style={s.qNowText}>SONANDO AHORA</Text></View>
       <View style={s.qCurrent}>
-        <View style={[s.qCurArt, {backgroundColor: colors.primary+"22", justifyContent:"center", alignItems:"center"}]}><Ionicons name="musical-notes" size={20} color={colors.primary} /></View>
+        {nowPlaying.art ? (
+          <Image source={{ uri: nowPlaying.art }} style={s.qCurArt} />
+        ) : (
+          <View style={[s.qCurArt, {backgroundColor: colors.primary+"22", justifyContent:"center", alignItems:"center"}]}><Ionicons name="musical-notes" size={20} color={colors.primary} /></View>
+        )}
         <View style={{flex:1}}><Text style={s.qCurTitle}>{nowPlaying.title}</Text><Text style={s.qCurArtist}>{nowPlaying.artist}</Text></View>
         <View style={s.qBars}><View style={[s.qBar,{height:14}]}/><View style={[s.qBar,{height:20}]}/><View style={[s.qBar,{height:10}]}/><View style={[s.qBar,{height:16}]}/></View>
       </View>
@@ -367,12 +404,25 @@ export default function SessionScreen() {
           return (
             <View style={s.qItem}>
               {medal ? <Text style={{fontSize:20,width:32,textAlign:'center'}}>{medal}</Text> : <Text style={s.qNum}>{i+1}</Text>}
-              <View style={[s.qArt, {backgroundColor: colors.primary+"22", justifyContent:"center", alignItems:"center"}]}><Ionicons name="musical-note" size={16} color={colors.primary} /></View>
+              {item.art ? (
+                <Image source={{ uri: item.art }} style={s.qArt} />
+              ) : (
+                <View style={[s.qArt, {backgroundColor: colors.primary+"22", justifyContent:"center", alignItems:"center"}]}><Ionicons name="musical-note" size={16} color={colors.primary} /></View>
+              )}
               <View style={{flex:1}}>
                 <Text style={s.qTitle} numberOfLines={1}>{item.title}</Text>
                 <Text style={s.qArtist} numberOfLines={1}>{item.artist}</Text>
                 <Text style={s.qMeta}>Pedida por {item.by} · {item.dur}</Text>
               </View>
+              
+              {item.preview && (
+                <AudioPreview 
+                  previewUrl={item.preview}
+                  size="small"
+                  showTitle={false}
+                />
+              )}
+              
               <TouchableOpacity style={s.qVote} onPress={()=>vote(item.id)}>
                 <Ionicons name={v?'arrow-up-circle':'arrow-up-circle-outline'} size={26} color={v?colors.primary:colors.textMuted}/>
                 <Text style={[s.qVoteN,v&&{color:colors.primary}]}>{item.votes+(v?1:0)}</Text>

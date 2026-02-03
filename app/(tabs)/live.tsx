@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -95,19 +96,39 @@ interface SessionData {
   listener_count: number;
   current_song: string;
   current_artist: string;
+  current_cover?: string;
 }
 
-// Simple Avatar component (inline to avoid import issues in demo)
-function DJAvatar({ name, size = 48 }: { name: string; size?: number }) {
-  const initials = name
+// Session Avatar - shows album cover or DJ initials
+function SessionAvatar({ 
+  coverUrl, 
+  djName, 
+  size = 48, 
+  showLiveDot = false 
+}: { 
+  coverUrl?: string; 
+  djName: string; 
+  size?: number;
+  showLiveDot?: boolean;
+}) {
+  const initials = djName
     .split(' ')
     .map(w => w[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
-  const hue = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
+  const hue = djName.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
 
-  return (
+  const avatar = coverUrl ? (
+    <Image 
+      source={{ uri: coverUrl }} 
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 8, // Album covers look better with slight corner radius
+      }}
+    />
+  ) : (
     <View
       style={{
         width: size,
@@ -121,6 +142,34 @@ function DJAvatar({ name, size = 48 }: { name: string; size?: number }) {
       <Text style={{ color: '#fff', fontSize: size * 0.38, fontWeight: '700' }}>
         {initials}
       </Text>
+    </View>
+  );
+
+  if (!showLiveDot) return avatar;
+
+  return (
+    <View style={{ position: 'relative' }}>
+      {avatar}
+      <View style={{
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: colors.background,
+      }}>
+        <View style={{
+          width: 6,
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: colors.textOnPrimary,
+        }} />
+      </View>
     </View>
   );
 }
@@ -146,7 +195,7 @@ export default function LiveScreen() {
         .select(`
           id, name, genres, is_active, started_at, is_seed,
           dj:ws_profiles!dj_id(display_name, dj_name),
-          songs:ws_songs(title, artist, status),
+          songs:ws_songs(title, artist, status, cover_url),
           members:ws_session_members(id)
         `)
         .eq('is_active', true)
@@ -155,15 +204,19 @@ export default function LiveScreen() {
       const { data, error } = await query;
 
       if (!error && data && data.length > 0) {
-        const mapped = data.map((s: any) => ({
-          id: s.id,
-          name: s.name,
-          dj_display_name: s.dj?.dj_name || s.dj?.display_name || 'DJ',
-          genre: s.genres?.[0] || 'Mix',
-          listener_count: s.members?.length || 0,
-          current_song: s.songs?.find((sg: any) => sg.status === 'playing')?.title || 'En pausa',
-          current_artist: s.songs?.find((sg: any) => sg.status === 'playing')?.artist || '',
-        }));
+        const mapped = data.map((s: any) => {
+          const currentSong = s.songs?.find((sg: any) => sg.status === 'playing');
+          return {
+            id: s.id,
+            name: s.name,
+            dj_display_name: s.dj?.dj_name || s.dj?.display_name || 'DJ',
+            genre: s.genres?.[0] || 'Mix',
+            listener_count: s.members?.length || 0,
+            current_song: currentSong?.title || 'En pausa',
+            current_artist: currentSong?.artist || '',
+            current_cover: currentSong?.cover_url || '',
+          };
+        });
         setSessions(mapped);
         setLoading(false);
         return;
@@ -259,7 +312,11 @@ export default function LiveScreen() {
           </View>
 
           <View style={styles.featuredBody}>
-            <DJAvatar name={featured.dj_display_name} size={56} />
+            <SessionAvatar 
+              coverUrl={featured.current_cover} 
+              djName={featured.dj_display_name} 
+              size={56} 
+            />
             <View style={styles.featuredInfo}>
               <Text style={styles.featuredName} numberOfLines={1}>
                 {featured.name}
@@ -298,12 +355,12 @@ export default function LiveScreen() {
             onPress={() => router.push(`/session/${session.id}`)}
             activeOpacity={0.7}
           >
-            <View style={styles.sessionAvatarWrap}>
-              <DJAvatar name={session.dj_display_name} />
-              <View style={styles.liveIndicator}>
-                <View style={styles.livePulse} />
-              </View>
-            </View>
+            <SessionAvatar 
+              coverUrl={session.current_cover} 
+              djName={session.dj_display_name} 
+              size={48}
+              showLiveDot={true}
+            />
 
             <View style={styles.sessionInfo}>
               <Text style={styles.sessionName} numberOfLines={1}>
@@ -466,26 +523,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: colors.divider,
   },
-  sessionAvatarWrap: { position: 'relative' },
-  liveIndicator: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.background,
-  },
-  livePulse: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.textOnPrimary,
-  },
+  // Removed unused styles - live indicator now handled in SessionAvatar
   sessionInfo: { flex: 1, gap: 2 },
   sessionName: { ...typography.bodyBold, color: colors.textPrimary },
   sessionDj: { ...typography.caption, color: colors.textSecondary },

@@ -1,120 +1,229 @@
 /**
- * WhatsSound — Pedir Canción
- * Referencia: 18-pedir-cancion.png
- * Búsqueda + resultados con botón Pedir / ✓ Pedida
+ * WhatsSound — Pedir canción con búsqueda de Deezer
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
-
-const COLORS = ['#E91E63', '#00BCD4', '#FF9800', '#3F51B5', '#009688', '#9C27B0', '#FF5722', '#4CAF50'];
-
-const RESULTS = [
-  { id:'1', title: 'Dakiti', artist: 'Bad Bunny, Jhay Cortez', duration: '3:25' },
-  { id:'2', title: 'Titi Me Preguntó', artist: 'Bad Bunny', duration: '4:03' },
-  { id:'3', title: 'Yonaguni', artist: 'Bad Bunny', duration: '3:27' },
-  { id:'4', title: 'Callaíta', artist: 'Bad Bunny', duration: '4:16' },
-  { id:'5', title: 'Moscow Mule', artist: 'Bad Bunny', duration: '4:11' },
-  { id:'6', title: 'Efecto', artist: 'Bad Bunny', duration: '3:32' },
-];
+import SongSearch from '../../src/components/SongSearch';
+import { DeezerTrack } from '../../src/lib/deezer';
+import { supabase } from '../../src/lib/supabase';
 
 export default function RequestSongScreen() {
   const router = useRouter();
-  const [query, setQuery] = useState('bad bunny');
-  const [requested, setRequested] = useState<Set<string>>(new Set(['2']));
+  const { sid } = useLocalSearchParams<{ sid: string }>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleRequest = (id: string) => {
-    setRequested(prev => new Set(prev).add(id));
+  const handleSongSelect = async (track: DeezerTrack) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+
+    try {
+      // Convertir duración de segundos a milisegundos
+      const durationMs = track.duration * 1000;
+
+      // Datos de la canción para insertar
+      const songData = {
+        session_id: sid,
+        user_id: 'a0000001-0000-0000-0000-000000000001', // Usuario de ejemplo
+        external_id: `deezer:${track.id}`,
+        deezer_id: track.id,
+        title: track.title,
+        artist: track.artist.name,
+        album_name: track.album.title,
+        cover_url: track.album.cover_medium || track.album.cover_big || track.album.cover,
+        preview_url: track.preview,
+        duration_ms: durationMs,
+        status: 'pending',
+      };
+
+      console.log('Guardando canción:', songData);
+
+      const { error } = await supabase
+        .from('ws_songs')
+        .insert([songData]);
+
+      if (error) {
+        console.error('Error insertando canción:', error);
+        if (error.code === '23505') { // Unique constraint violation
+          Alert.alert(
+            'Canción duplicada', 
+            'Esta canción ya está en la cola de esta sesión.'
+          );
+        } else {
+          Alert.alert(
+            'Error', 
+            'No se pudo agregar la canción. Inténtalo de nuevo.'
+          );
+        }
+        return;
+      }
+
+      // Éxito
+      Alert.alert(
+        '¡Canción agregada! 🎵',
+        `"${track.title}" se ha añadido a la cola.`,
+        [
+          {
+            text: 'Ver cola',
+            onPress: () => router.replace(`/session/${sid}?tab=queue`),
+          },
+          {
+            text: 'Agregar otra',
+            onPress: () => {
+              // Solo limpiar el estado, mantener la pantalla abierta
+              setIsSubmitting(false);
+            },
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.error('Error agregando canción:', error);
+      Alert.alert('Error', 'Algo salió mal. Inténtalo de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <View style={s.container}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Pedir canción</Text>
-        <View style={{ width: 24 }} />
-      </View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.content} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="close" size={28} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerTitle}>Pedir canción</Text>
+            <Text style={styles.headerSubtitle}>Busca en Deezer</Text>
+          </View>
+          <View style={{ width: 28 }} />
+        </View>
 
-      {/* Search */}
-      <View style={s.searchBox}>
-        <Ionicons name="search" size={18} color={colors.textMuted} />
-        <TextInput
-          style={s.searchInput}
-          placeholder="Buscar canción o artista..."
-          placeholderTextColor={colors.textMuted}
-          value={query}
-          onChangeText={setQuery}
-          autoFocus
-        />
-      </View>
-
-      {/* Results */}
-      <ScrollView contentContainerStyle={s.results}>
-        {RESULTS.map((song, i) => {
-          const isRequested = requested.has(song.id);
-          return (
-            <View key={song.id} style={s.songRow}>
-              {/* Album art placeholder */}
-              <View style={[s.albumArt, { backgroundColor: COLORS[i % COLORS.length] }]}>
-                <Ionicons name="musical-notes" size={18} color="rgba(255,255,255,0.7)" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.songTitle}>{song.title}</Text>
-                <Text style={s.songArtist}>{song.artist}</Text>
-                <Text style={s.songDuration}>{song.duration}</Text>
-              </View>
-              {isRequested ? (
-                <View style={s.requestedBtn}>
-                  <Text style={s.requestedText}>✓ Pedida</Text>
-                </View>
-              ) : (
-                <TouchableOpacity style={s.requestBtn} onPress={() => handleRequest(song.id)}>
-                  <Text style={s.requestBtnText}>Pedir</Text>
-                </TouchableOpacity>
-              )}
+        {/* Instructions */}
+        <View style={styles.instructions}>
+          <View style={styles.instructionRow}>
+            <View style={styles.instructionIcon}>
+              <Ionicons name="search" size={20} color={colors.primary} />
             </View>
-          );
-        })}
+            <Text style={styles.instructionText}>
+              Busca por título o artista
+            </Text>
+          </View>
+          <View style={styles.instructionRow}>
+            <View style={styles.instructionIcon}>
+              <Ionicons name="play-circle" size={20} color={colors.primary} />
+            </View>
+            <Text style={styles.instructionText}>
+              Escucha un preview de 30 segundos
+            </Text>
+          </View>
+          <View style={styles.instructionRow}>
+            <View style={styles.instructionIcon}>
+              <Ionicons name="add-circle" size={20} color={colors.primary} />
+            </View>
+            <Text style={styles.instructionText}>
+              Toca + para agregar a la cola
+            </Text>
+          </View>
+        </View>
 
-        {/* Footer */}
-        <Text style={s.footer}>Powered by <Text style={{ color: colors.primary }}>Deezer</Text></Text>
-      </ScrollView>
-    </View>
+        {/* Song Search */}
+        <View style={styles.searchContainer}>
+          <SongSearch
+            onSongSelect={handleSongSelect}
+            sessionId={sid || ''}
+            placeholder="Buscar canciones..."
+            maxResults={15}
+            showAudioPreview={true}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.md },
-  headerTitle: { ...typography.h3, color: colors.textPrimary, fontSize: 18 },
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.surface, borderRadius: borderRadius.full,
-    marginHorizontal: spacing.base, paddingHorizontal: spacing.base, paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 15 },
-  results: { paddingHorizontal: spacing.base, paddingBottom: 40 },
-  songRow: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+  content: {
+    flex: 1,
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1, borderBottomColor: colors.border + '40',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  albumArt: { width: 48, height: 48, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
-  songTitle: { ...typography.bodyBold, color: colors.textPrimary, fontSize: 15 },
-  songArtist: { ...typography.caption, color: colors.textSecondary, fontSize: 12, marginTop: 1 },
-  songDuration: { ...typography.caption, color: colors.textMuted, fontSize: 11, marginTop: 1 },
-  requestBtn: { backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: borderRadius.full },
-  requestBtnText: { ...typography.buttonSmall, color: '#fff', fontSize: 13 },
-  requestedBtn: { backgroundColor: colors.surfaceLight, paddingHorizontal: 14, paddingVertical: 8, borderRadius: borderRadius.full },
-  requestedText: { ...typography.captionBold, color: colors.textMuted, fontSize: 12 },
-  footer: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl, fontSize: 12 },
+  headerInfo: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  headerSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+
+  // Instructions
+  instructions: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: spacing.md,
+  },
+  instructionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  instructionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  instructionText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+
+  // Search
+  searchContainer: {
+    flex: 1,
+    padding: spacing.md,
+  },
 });

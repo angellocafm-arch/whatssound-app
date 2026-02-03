@@ -16,6 +16,7 @@ import {
   FlatList,
   Dimensions,
   TextInput,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +38,7 @@ interface PopularSession {
   listeners: number;
   isLive: boolean;
   emoji: string;
+  coverUrl?: string;
 }
 
 interface FeaturedDJ {
@@ -113,7 +115,14 @@ const LiveDot = () => (
 const PopularSessionCard = ({ session, onPress }: { session: PopularSession; onPress: () => void }) => (
   <TouchableOpacity style={styles.popularCard} activeOpacity={0.8} onPress={onPress}>
     <View style={styles.popularCardHeader}>
-      <Text style={styles.popularEmoji}>{session.emoji}</Text>
+      {session.coverUrl ? (
+        <Image 
+          source={{ uri: session.coverUrl }} 
+          style={styles.popularCover}
+        />
+      ) : (
+        <Text style={styles.popularEmoji}>{session.emoji}</Text>
+      )}
       {session.isLive && (
         <View style={styles.liveTag}>
           <LiveDot />
@@ -207,17 +216,25 @@ export default function DiscoverScreen() {
       const showSeed = await shouldShowSeed();
       let sessQ = supabase
         .from('ws_sessions')
-        .select('id, name, genres, is_active, is_seed, dj:ws_profiles!dj_id(dj_name, display_name), members:ws_session_members(id)')
+        .select('id, name, genres, is_active, is_seed, dj:ws_profiles!dj_id(dj_name, display_name), members:ws_session_members(id), songs:ws_songs(title, artist, status, cover_url)')
         .eq('is_active', true)
         .order('started_at', { ascending: false });
       if (!showSeed) sessQ = sessQ.eq('is_seed', false);
       const { data: sess } = await sessQ;
       if (sess && sess.length > 0) {
-        setDbSessions(sess.map((s: any) => ({
-          id: s.id, name: s.name, dj: s.dj?.dj_name || s.dj?.display_name || 'DJ',
-          genre: s.genres?.[0] || 'Mix', listeners: s.members?.length || 0, isLive: true,
-          emoji: s.name.match(/[\u{1F300}-\u{1FAFF}]/u)?.[0] || '🎵',
-        })));
+        setDbSessions(sess.map((s: any) => {
+          const currentSong = s.songs?.find((song: any) => song.status === 'playing');
+          return {
+            id: s.id, 
+            name: s.name, 
+            dj: s.dj?.dj_name || s.dj?.display_name || 'DJ',
+            genre: s.genres?.[0] || 'Mix', 
+            listeners: s.members?.length || 0, 
+            isLive: true,
+            emoji: s.name.match(/[\u{1F300}-\u{1FAFF}]/u)?.[0] || '🎵',
+            coverUrl: currentSong?.cover_url || '',
+          };
+        }));
       }
       // DJs
       let djQ = supabase
@@ -410,6 +427,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   popularEmoji: { fontSize: 28 },
+  popularCover: { 
+    width: 40, 
+    height: 40, 
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+  },
   liveTag: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#EF535020', paddingHorizontal: 6, paddingVertical: 2,
