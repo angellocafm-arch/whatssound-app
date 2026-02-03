@@ -2,36 +2,25 @@
  * WhatsSound — Historial de Propinas
  * Referencia: 27-historial-propinas.png
  * Tabs: Recibidas / Enviadas + Balance + Lista + Retirar fondos
+ * 
+ * CONECTADO A SUPABASE: carga propinas reales de ws_tips
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
-import { LinearGradient } from 'expo-linear-gradient';
+import { getUserTipsSent, getUserTipsReceived, getDJBalance, getPaymentStatus } from '../../src/lib/tips';
+import { isTestMode, getOrCreateTestUser, DEMO_DJ } from '../../src/lib/demo';
 import { supabase } from '../../src/lib/supabase';
-
-const RECEIVED = [
-  { name: 'Laura García', song: 'Pepas — Farruko', amount: 5, time: 'Hace 10 min' },
-  { name: 'Carlos Ruiz', song: 'Yandel 150 — Yandel', amount: 10, time: 'Hace 1h' },
-  { name: 'Ana Martín', song: 'La Jumpa — Arcángel', amount: 2, time: 'Hace 3h' },
-  { name: 'Pedro López', song: 'Quevedo Bzrp 52', amount: 5, time: 'Ayer' },
-  { name: 'Sofía Vega', song: 'Titi Me Preguntó', amount: 1, time: 'Ayer' },
-  { name: 'Miguel Torres', song: 'Efecto — Bad Bunny', amount: 2, time: 'Hace 2 días' },
-];
-
-const SENT = [
-  { name: 'DJ Luna', song: 'Session Chill Beats', amount: 5, time: 'Hace 2h' },
-  { name: 'DJ Carlos Madrid', song: 'Viernes Latino', amount: 2, time: 'Ayer' },
-  { name: 'Sarah B', song: 'Deep House Sunset', amount: 3, time: 'Hace 3 días' },
-];
 
 function timeAgo(date: string) {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Ahora';
   if (mins < 60) return `Hace ${mins} min`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `Hace ${hrs}h`;
@@ -43,36 +32,99 @@ function timeAgo(date: string) {
 export default function TipsHistoryScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<'received' | 'sent'>('received');
-  const [dbTips, setDbTips] = useState<any[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+  const [isDJ, setIsDJ] = useState(false);
+  
+  const [receivedTips, setReceivedTips] = useState<any[]>([]);
+  const [sentTips, setSentTips] = useState<any[]>([]);
+  const [balance, setBalance] = useState({ total: 0, available: 0, pending: 0, thisMonth: 0 });
 
-  React.useEffect(() => {
+  const paymentStatus = getPaymentStatus();
+
+  // Get current user
+  useEffect(() => {
     (async () => {
-      try {
-        // Load tips received by DJ Carlos Madrid (demo)
-        const djId = 'd0000001-0000-0000-0000-000000000001';
-        const { data } = await supabase
-          .from('ws_tips')
-          .select('*, sender:ws_profiles!sender_id(display_name), song:ws_songs!song_id(title, artist)')
-          .eq('receiver_id', djId)
-          .order('created_at', { ascending: false });
-        if (data && data.length > 0) {
-          setDbTips(data.map((t: any) => ({
-            name: t.sender?.display_name || 'Anónimo',
-            song: t.song ? `${t.song.title} — ${t.song.artist}` : t.message || 'Propina general',
-            amount: t.amount,
-            time: timeAgo(t.created_at),
-          })));
+      if (isTestMode()) {
+        const testProfile = await getOrCreateTestUser();
+        if (testProfile) {
+          setUserId(testProfile.id);
+          setIsDJ(testProfile.is_dj);
         }
-      } catch (e) { /* fallback */ }
-      setLoaded(true);
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+          const { data: profile } = await supabase
+            .from('ws_profiles')
+            .select('is_dj')
+            .eq('id', user.id)
+            .single();
+          setIsDJ(profile?.is_dj || false);
+        }
+      }
     })();
   }, []);
 
-  const receivedTips = dbTips.length > 0 ? dbTips : RECEIVED;
-  const tips = tab === 'received' ? receivedTips : SENT;
-  const balance = dbTips.length > 0 ? dbTips.reduce((s, t) => s + t.amount, 0) * 0.9 : 47.50;
-  const thisMonth = dbTips.length > 0 ? dbTips.reduce((s, t) => s + t.amount, 0) : 32.00;
+  // Load tips
+  const loadTips = async () => {
+    if (!userId) return;
+    
+    try {
+      // Load received tips (for DJs)
+      if (isDJ) {
+        const received = await getUserTipsReceived(userId);
+        setReceivedTips(received.map((t: any) => ({
+          id: t.id,
+          name: t.is_anonymous ? 'Anónimo' : (t.sender?.display_name || 'Usuario'),
+          song: t.song ? `${t.song.title} — ${t.song.artist}` : t.message || 'Propina general',
+          amount: t.amount,
+          time: timeAgo(t.created_at),
+          status: t.status,
+        })));
+
+        // Load balance
+        const bal = await getDJBalance(userId);
+        setBalance(bal);
+      }
+
+      // Load sent tips (for everyone)
+      const sent = await getUserTipsSent(userId);
+      setSentTips(sent.map((t: any) => ({
+        id: t.id,
+        name: t.receiver?.dj_name || t.receiver?.display_name || 'DJ',
+        song: t.session?.name || t.message || 'Propina general',
+        amount: t.amount,
+        time: timeAgo(t.created_at),
+        status: t.status,
+      })));
+    } catch (e) {
+      console.error('Error loading tips:', e);
+    }
+    
+    setLoading(false);
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    if (userId) loadTips();
+  }, [userId, isDJ]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadTips();
+  };
+
+  const tips = tab === 'received' ? receivedTips : sentTips;
+
+  if (loading) {
+    return (
+      <View style={[s.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={s.container}>
@@ -85,44 +137,93 @@ export default function TipsHistoryScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      {/* Tabs */}
-      <View style={s.tabs}>
-        <TouchableOpacity style={[s.tab, tab === 'received' && s.tabActive]} onPress={() => setTab('received')}>
-          <Text style={[s.tabText, tab === 'received' && s.tabTextActive]}>Recibidas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.tab, tab === 'sent' && s.tabActive]} onPress={() => setTab('sent')}>
-          <Text style={[s.tabText, tab === 'sent' && s.tabTextActive]}>Enviadas</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={s.content}>
-        {/* Balance card */}
-        <View style={s.balanceCard}>
-          <Text style={s.balanceLabel}>Balance total</Text>
-          <Text style={s.balanceAmount}>€{balance.toFixed(2)}</Text>
-          <Text style={s.balanceMonth}>Este mes: +€{thisMonth.toFixed(2)}</Text>
+      {/* Test mode banner */}
+      {!paymentStatus.enabled && (
+        <View style={s.testBanner}>
+          <Ionicons name="flask" size={14} color={colors.warning} />
+          <Text style={s.testBannerText}>Modo demo: las propinas son simuladas</Text>
         </View>
+      )}
 
-        {/* Tips list */}
-        {tips.map((tip, i) => (
-          <View key={i} style={s.tipRow}>
-            <View style={s.tipAvatar}>
-              <Text style={s.tipAvatarText}>{tip.name.split(' ').map(w => w[0]).join('')}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.tipName}>{tip.name}</Text>
-              <Text style={s.tipSong}>🎵 {tip.song}</Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={s.tipAmount}>{tab === 'received' ? '+' : '-'}€{tip.amount}</Text>
-              <Text style={s.tipTime}>{tip.time}</Text>
+      {/* Tabs */}
+      {isDJ && (
+        <View style={s.tabs}>
+          <TouchableOpacity style={[s.tab, tab === 'received' && s.tabActive]} onPress={() => setTab('received')}>
+            <Text style={[s.tabText, tab === 'received' && s.tabTextActive]}>Recibidas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.tab, tab === 'sent' && s.tabActive]} onPress={() => setTab('sent')}>
+            <Text style={[s.tabText, tab === 'sent' && s.tabTextActive]}>Enviadas</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <ScrollView 
+        contentContainerStyle={s.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
+        {/* Balance card (only for DJs on received tab) */}
+        {isDJ && tab === 'received' && (
+          <View style={s.balanceCard}>
+            <Text style={s.balanceLabel}>Balance disponible</Text>
+            <Text style={s.balanceAmount}>€{balance.available.toFixed(2)}</Text>
+            <View style={s.balanceStats}>
+              <View style={s.balanceStat}>
+                <Text style={s.balanceStatValue}>€{balance.thisMonth.toFixed(2)}</Text>
+                <Text style={s.balanceStatLabel}>Este mes</Text>
+              </View>
+              {balance.pending > 0 && (
+                <View style={s.balanceStat}>
+                  <Text style={s.balanceStatValue}>€{balance.pending.toFixed(2)}</Text>
+                  <Text style={s.balanceStatLabel}>Pendiente</Text>
+                </View>
+              )}
             </View>
           </View>
-        ))}
+        )}
+
+        {/* Tips list */}
+        {tips.length === 0 ? (
+          <View style={s.emptyState}>
+            <Ionicons name="cash-outline" size={48} color={colors.textMuted} />
+            <Text style={s.emptyTitle}>
+              {tab === 'received' ? 'No has recibido propinas aún' : 'No has enviado propinas aún'}
+            </Text>
+            <Text style={s.emptySub}>
+              {tab === 'received' 
+                ? 'Cuando alguien te envíe una propina, aparecerá aquí'
+                : 'Apoya a tus DJs favoritos con propinas'}
+            </Text>
+          </View>
+        ) : (
+          tips.map((tip, i) => (
+            <View key={tip.id || i} style={s.tipRow}>
+              <View style={s.tipAvatar}>
+                <Text style={s.tipAvatarText}>
+                  {tip.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2)}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.tipName}>{tip.name}</Text>
+                <Text style={s.tipSong}>🎵 {tip.song}</Text>
+                {tip.status === 'test' && (
+                  <View style={s.testBadge}>
+                    <Text style={s.testBadgeText}>Demo</Text>
+                  </View>
+                )}
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={s.tipAmount}>{tab === 'received' ? '+' : '-'}€{tip.amount}</Text>
+                <Text style={s.tipTime}>{tip.time}</Text>
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
 
-      {/* Retirar fondos button */}
-      {tab === 'received' && (
+      {/* Retirar fondos button (only for DJs) */}
+      {isDJ && tab === 'received' && balance.available > 0 && (
         <View style={s.footer}>
           <TouchableOpacity style={s.withdrawBtn} onPress={() => router.push('/tips/payments' as any)}>
             <Text style={s.withdrawText}>Retirar fondos</Text>
@@ -138,22 +239,48 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.md },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...typography.h3, color: colors.textPrimary, fontSize: 18 },
+  
+  testBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.warning + '15',
+    paddingVertical: spacing.xs,
+    marginHorizontal: spacing.base,
+    borderRadius: borderRadius.md,
+  },
+  testBannerText: { ...typography.caption, color: colors.warning },
+  
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
   tab: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
   tabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
   tabText: { ...typography.bodyBold, color: colors.textMuted, fontSize: 14 },
   tabTextActive: { color: colors.primary },
-  content: { padding: spacing.base, gap: spacing.sm },
+  
+  content: { padding: spacing.base, gap: spacing.sm, paddingBottom: 100 },
+  
   balanceCard: {
     borderRadius: borderRadius.xl, padding: spacing.xl,
     alignItems: 'center', marginBottom: spacing.md,
     backgroundColor: '#1a8d4e',
-    // Gradient simulado con background
     shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12,
   },
   balanceLabel: { ...typography.bodySmall, color: 'rgba(255,255,255,0.8)', fontSize: 14 },
   balanceAmount: { ...typography.h1, color: '#fff', fontSize: 42, marginVertical: spacing.sm },
-  balanceMonth: { ...typography.bodySmall, color: 'rgba(255,255,255,0.7)', fontSize: 13 },
+  balanceStats: { flexDirection: 'row', gap: spacing.xl },
+  balanceStat: { alignItems: 'center' },
+  balanceStatValue: { ...typography.bodyBold, color: 'rgba(255,255,255,0.9)', fontSize: 16 },
+  balanceStatLabel: { ...typography.caption, color: 'rgba(255,255,255,0.6)', fontSize: 11 },
+  
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing['3xl'],
+    gap: spacing.sm,
+  },
+  emptyTitle: { ...typography.h3, color: colors.textPrimary, fontSize: 16, textAlign: 'center' },
+  emptySub: { ...typography.bodySmall, color: colors.textMuted, textAlign: 'center' },
+  
   tipRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     paddingVertical: spacing.md,
@@ -165,6 +292,17 @@ const s = StyleSheet.create({
   tipSong: { ...typography.caption, color: colors.textSecondary, fontSize: 12, marginTop: 2 },
   tipAmount: { ...typography.bodyBold, color: colors.primary, fontSize: 15 },
   tipTime: { ...typography.caption, color: colors.textMuted, fontSize: 11, marginTop: 2 },
+  
+  testBadge: {
+    backgroundColor: colors.warning + '20',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  testBadgeText: { ...typography.caption, color: colors.warning, fontSize: 10 },
+  
   footer: { padding: spacing.base, paddingBottom: 30 },
   withdrawBtn: { backgroundColor: colors.primary, borderRadius: borderRadius.lg, paddingVertical: 16, alignItems: 'center' },
   withdrawText: { ...typography.button, color: '#fff', fontSize: 16 },
