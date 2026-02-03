@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
+import { supabase } from '../../src/lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -124,16 +125,79 @@ export default function SessionScreen() {
       return m;
     });
   });
-  const [progress, setProgress] = useState(NOW.currentTime / NOW.duration);
+  const [progress, setProgress] = useState(nowPlaying.currentTime / nowPlaying.duration);
   const [playing, setPlaying] = useState(true);
   const [voted, setVoted] = useState<Set<string>>(new Set());
   const [floats, setFloats] = useState<{id:string;emoji:string;anim:Animated.Value;x:number}[]>([]);
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [dbQueue, setDbQueue] = useState<any[]>([]);
+  const [dbChat, setDbChat] = useState<ChatMsg[]>([]);
+  const [dbPeople, setDbPeople] = useState<any[]>([]);
   const listRef = useRef<FlatList>(null);
   const pulse = useRef(new Animated.Value(1)).current;
 
+  // Load from Supabase if real UUID
+  useEffect(() => {
+    if (!id || id.startsWith('mock-')) return;
+    (async () => {
+      try {
+        // Session info
+        const { data: sess } = await supabase
+          .from('ws_sessions').select('*, dj:ws_profiles!dj_id(dj_name, display_name)')
+          .eq('id', id).single();
+        if (sess) setSessionData(sess);
+
+        // Queue
+        const { data: songs } = await supabase
+          .from('ws_songs').select('*, requester:ws_profiles!user_id(display_name)')
+          .eq('session_id', id).in('status', ['queued', 'playing'])
+          .order('vote_count', { ascending: false });
+        if (songs) setDbQueue(songs);
+
+        // Chat
+        const { data: chatMsgs } = await supabase
+          .from('ws_messages').select('*, author:ws_profiles!author_id(display_name)')
+          .eq('session_id', id).order('created_at', { ascending: true }).limit(50);
+        if (chatMsgs) {
+          setDbChat(chatMsgs.map((m: any) => ({
+            id: m.id, user: m.author?.display_name || 'Anónimo',
+            text: m.content, time: new Date(m.created_at).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}),
+            isMine: false, role: m.type === 'dj_announce' ? 'dj' as const : undefined,
+          })));
+        }
+
+        // People
+        const { data: members } = await supabase
+          .from('ws_session_members').select('*, profile:ws_profiles!user_id(display_name)')
+          .eq('session_id', id).is('left_at', null);
+        if (members) {
+          setDbPeople(members.map((m: any) => ({
+            id: m.id, name: m.profile?.display_name || 'Anónimo',
+            role: m.role === 'dj' ? 'dj' : m.role === 'vip' ? 'vip' : m.role === 'moderator' ? 'mod' : undefined,
+            on: true,
+          })));
+        }
+      } catch (e) { /* fallback to mocks */ }
+    })();
+  }, [id]);
+
+  // Use DB data if available
+  const activeSession = sessionData || SESSION;
+  const activeQueue = dbQueue.length > 0 ? dbQueue.map((s: any) => ({
+    id: s.id, title: s.title, artist: s.artist, art: '', by: s.requester?.display_name || '??',
+    votes: s.vote_count, dur: fmtTime(Math.round(s.duration_ms / 1000)),
+  })) : QUEUE;
+  const activeChat = dbChat.length > 0 ? dbChat : msgs;
+  const activePeople = dbPeople.length > 0 ? dbPeople : PEOPLE;
+  const activeNow = dbQueue.find((s: any) => s.status === 'playing');
+  const nowPlaying = activeNow ? {
+    title: activeNow.title, artist: activeNow.artist, album: '',
+    art: '', duration: Math.round(activeNow.duration_ms / 1000), currentTime: 0,
+  } : NOW;
+
   useEffect(() => {
     if (!playing) return;
-    const i = setInterval(() => setProgress(p => p + 1/NOW.duration >= 1 ? 0 : p + 1/NOW.duration), 1000);
+    const i = setInterval(() => setProgress(p => p + 1/nowPlaying.duration >= 1 ? 0 : p + 1/nowPlaying.duration), 1000);
     return () => clearInterval(i);
   }, [playing]);
 
@@ -174,8 +238,8 @@ export default function SessionScreen() {
         <Animated.View style={[s.liveDot,{transform:[{scale:pulse}]}]} />
       </View>
       <View style={{flex:1}}>
-        <Text style={s.hTitle} numberOfLines={1}>{SESSION.djName}</Text>
-        <Text style={s.hSub}>{SESSION.genre} · <Text style={{color:colors.primary}}>{SESSION.listeners} oyentes</Text></Text>
+        <Text style={s.hTitle} numberOfLines={1}>{activeSession.djName || activeSession.dj?.dj_name || "DJ"}</Text>
+        <Text style={s.hSub}>{activeSession.genre || activeSession.genres?.join(", ") || "Mix"} · <Text style={{color:colors.primary}}>{activeSession.listeners || activePeople.length} oyentes</Text></Text>
       </View>
       <View style={s.liveBadge}><View style={s.liveRedDot}/><Text style={s.liveText}>EN VIVO</Text></View>
     </View>
@@ -188,14 +252,14 @@ export default function SessionScreen() {
       <View style={s.artWrap}>
         <View style={[s.artImg, {backgroundColor: colors.primary + '33', justifyContent:'center', alignItems:'center'}]}>
           <Ionicons name="musical-notes" size={80} color={colors.primary} />
-          <Text style={{color: colors.textSecondary, fontSize: 12, marginTop: 8}}>{NOW.artist}</Text>
+          <Text style={{color: colors.textSecondary, fontSize: 12, marginTop: 8}}>{nowPlaying.artist}</Text>
         </View>
         <View style={s.artGlow} />
       </View>
       {/* Info */}
-      <Text style={s.pTitle}>{NOW.title}</Text>
-      <Text style={s.pArtist}>{NOW.artist}</Text>
-      <Text style={s.pAlbum}>{NOW.album}</Text>
+      <Text style={s.pTitle}>{nowPlaying.title}</Text>
+      <Text style={s.pArtist}>{nowPlaying.artist}</Text>
+      <Text style={s.pAlbum}>{nowPlaying.album}</Text>
       {/* Progress */}
       <View style={s.progWrap}>
         <View style={s.progTrack}>
@@ -203,8 +267,8 @@ export default function SessionScreen() {
           <View style={[s.progThumb,{left:`${progress*100}%`}]} />
         </View>
         <View style={s.progTimes}>
-          <Text style={s.progTime}>{fmtTime(progress*NOW.duration)}</Text>
-          <Text style={s.progTime}>{fmtTime(NOW.duration)}</Text>
+          <Text style={s.progTime}>{fmtTime(progress*nowPlaying.duration)}</Text>
+          <Text style={s.progTime}>{fmtTime(nowPlaying.duration)}</Text>
         </View>
       </View>
       {/* Controls */}
@@ -229,7 +293,7 @@ export default function SessionScreen() {
       {/* Up Next */}
       <View style={s.upNext}>
         <Text style={s.upNextLabel}>A continuación</Text>
-        {QUEUE.slice(0,3).map((q,i) => (
+        {activeQueue.slice(0,3).map((q,i) => (
           <View key={q.id} style={s.upNextItem}>
             <Text style={s.upNextNum}>{i+1}</Text>
             <View style={[s.upNextArt, {backgroundColor: colors.primary+"22", justifyContent:"center", alignItems:"center"}]}><Ionicons name="musical-note" size={16} color={colors.primary} /></View>
@@ -256,7 +320,7 @@ export default function SessionScreen() {
   const Chat = () => (
     <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined} keyboardVerticalOffset={120}>
       <FlatList
-        ref={listRef} data={msgs} keyExtractor={i=>i.id}
+        ref={listRef} data={activeChat} keyExtractor={i=>i.id}
         renderItem={({item}) => (
           <View style={[s.bRow, item.isMine?s.bRowMine:s.bRowOther]}>
             <View style={[s.bub, item.isMine?s.bubMine:s.bubOther, !item.isMine&&{borderLeftColor:uColor(item.user)}]}>
@@ -292,11 +356,11 @@ export default function SessionScreen() {
       <View style={s.qNowRow}><View style={s.qNowDot}/><Text style={s.qNowText}>SONANDO AHORA</Text></View>
       <View style={s.qCurrent}>
         <View style={[s.qCurArt, {backgroundColor: colors.primary+"22", justifyContent:"center", alignItems:"center"}]}><Ionicons name="musical-notes" size={20} color={colors.primary} /></View>
-        <View style={{flex:1}}><Text style={s.qCurTitle}>{NOW.title}</Text><Text style={s.qCurArtist}>{NOW.artist}</Text></View>
+        <View style={{flex:1}}><Text style={s.qCurTitle}>{nowPlaying.title}</Text><Text style={s.qCurArtist}>{nowPlaying.artist}</Text></View>
         <View style={s.qBars}><View style={[s.qBar,{height:14}]}/><View style={[s.qBar,{height:20}]}/><View style={[s.qBar,{height:10}]}/><View style={[s.qBar,{height:16}]}/></View>
       </View>
-      <View style={s.qDivRow}><Ionicons name="list" size={14} color={colors.textMuted}/><Text style={s.qDivText}>SIGUIENTES ({QUEUE.length})</Text></View>
-      <FlatList data={QUEUE} keyExtractor={i=>i.id} contentContainerStyle={{paddingBottom:80}} showsVerticalScrollIndicator={false}
+      <View style={s.qDivRow}><Ionicons name="list" size={14} color={colors.textMuted}/><Text style={s.qDivText}>SIGUIENTES ({activeQueue.length})</Text></View>
+      <FlatList data={activeQueue} keyExtractor={i=>i.id} contentContainerStyle={{paddingBottom:80}} showsVerticalScrollIndicator={false}
         renderItem={({item,index:i}) => {
           const v = voted.has(item.id);
           const medal = i<3 ? ['🥇','🥈','🥉'][i] : null;
@@ -327,13 +391,13 @@ export default function SessionScreen() {
   const People = () => (
     <ScrollView contentContainerStyle={{paddingBottom:spacing['3xl']}}>
       <View style={s.pStats}>
-        <View style={s.pStat}><Text style={s.pStatN}>{SESSION.listeners}</Text><Text style={s.pStatL}>Oyentes</Text></View>
+        <View style={s.pStat}><Text style={s.pStatN}>{activeSession.listeners || activePeople.length}</Text><Text style={s.pStatL}>Oyentes</Text></View>
         <View style={s.pStatDiv}/>
-        <View style={s.pStat}><Text style={s.pStatN}>{SESSION.queueCount}</Text><Text style={s.pStatL}>En cola</Text></View>
+        <View style={s.pStat}><Text style={s.pStatN}>{activeSession.queueCount || activeQueue.length}</Text><Text style={s.pStatL}>En cola</Text></View>
         <View style={s.pStatDiv}/>
         <View style={s.pStat}><Text style={s.pStatN}>{msgs.length}</Text><Text style={s.pStatL}>Mensajes</Text></View>
       </View>
-      {PEOPLE.map(p => (
+      {activePeople.map(p => (
         <View key={p.id} style={s.person}>
           <View style={s.pAvatar}><Text style={s.pAvatarT}>{initials(p.name)}</Text><View style={[s.pOnline,{backgroundColor:p.on?colors.online:colors.offline}]}/></View>
           <View style={{flex:1}}><Text style={s.pName}>{p.name}</Text><Text style={s.pStatus}>{p.on?'En línea':'Desconectado'}</Text></View>

@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
+import { supabase } from '../../src/lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -194,25 +195,64 @@ export default function DiscoverScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [dbSessions, setDbSessions] = useState<PopularSession[]>([]);
+  const [dbDJs, setDbDJs] = useState<FeaturedDJ[]>([]);
+
+  useEffect(() => { loadFromDB(); }, []);
+
+  const loadFromDB = async () => {
+    try {
+      // Sessions
+      const { data: sess } = await supabase
+        .from('ws_sessions')
+        .select('id, name, genres, is_active, dj:ws_profiles!dj_id(dj_name, display_name), members:ws_session_members(id)')
+        .eq('is_active', true)
+        .order('started_at', { ascending: false });
+      if (sess && sess.length > 0) {
+        setDbSessions(sess.map((s: any) => ({
+          id: s.id, name: s.name, dj: s.dj?.dj_name || s.dj?.display_name || 'DJ',
+          genre: s.genres?.[0] || 'Mix', listeners: s.members?.length || 0, isLive: true,
+          emoji: s.name.match(/[\u{1F300}-\u{1FAFF}]/u)?.[0] || '🎵',
+        })));
+      }
+      // DJs
+      const { data: djs } = await supabase
+        .from('ws_profiles')
+        .select('id, display_name, dj_name, genres, is_verified')
+        .eq('is_dj', true);
+      if (djs && djs.length > 0) {
+        const colors_arr = ['#25D366', '#53BDEB', '#FFA726', '#EF5350', '#AB47BC', '#26C6DA', '#66BB6A'];
+        setDbDJs(djs.map((d: any, i: number) => ({
+          id: d.id, name: d.dj_name || d.display_name,
+          initials: (d.dj_name || d.display_name).split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
+          genre: d.genres?.[0] || 'Mix', followers: d.is_verified ? '2.3K' : '500+',
+          isLive: false, color: colors_arr[i % colors_arr.length],
+        })));
+      }
+    } catch (e) { /* fallback to mocks */ }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise(r => setTimeout(r, 800));
+    await loadFromDB();
     setRefreshing(false);
   };
 
+  const activeSessions = dbSessions.length > 0 ? dbSessions : POPULAR_SESSIONS;
+  const activeDJs = dbDJs.length > 0 ? dbDJs : FEATURED_DJS;
+
   const filteredSessions = search
-    ? POPULAR_SESSIONS.filter(s =>
+    ? activeSessions.filter(s =>
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.dj.toLowerCase().includes(search.toLowerCase()) ||
         s.genre.toLowerCase().includes(search.toLowerCase()))
-    : POPULAR_SESSIONS;
+    : activeSessions;
 
   const filteredDJs = search
-    ? FEATURED_DJS.filter(d =>
+    ? activeDJs.filter(d =>
         d.name.toLowerCase().includes(search.toLowerCase()) ||
         d.genre.toLowerCase().includes(search.toLowerCase()))
-    : FEATURED_DJS;
+    : activeDJs;
 
   return (
     <ScrollView
