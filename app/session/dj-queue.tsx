@@ -3,7 +3,7 @@
  * Gestión de cola con approve/reject, drag visual, AutoDJ, filtros
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,15 +11,18 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
+import { supabase } from '../../src/lib/supabase';
+import { useLocalSearchParams } from 'expo-router';
 
 // ─── Types ──────────────────────────────────────────────────
-type SongStatus = 'pending' | 'approved' | 'rejected' | 'playing';
+type SongStatus = 'pending' | 'approved' | 'rejected' | 'playing' | 'queued';
 type FilterType = 'all' | 'pending' | 'approved';
 
 interface QueueSong {
@@ -35,7 +38,7 @@ interface QueueSong {
   addedAt: string;
 }
 
-// ─── Mock Data ──────────────────────────────────────────────
+// ─── Fallback Mock Data (if no real data) ───────────────────
 const MOCK_QUEUE: QueueSong[] = [
   {
     id: '1', title: 'Pepas', artist: 'Farruko',
@@ -155,9 +158,60 @@ const SongCard = ({ song, onApprove, onReject }: {
 // ─── Main Component ─────────────────────────────────────────
 export default function DJQueueScreen() {
   const router = useRouter();
-  const [queue, setQueue] = useState(MOCK_QUEUE);
+  const params = useLocalSearchParams<{ sessionId?: string }>();
+  const [queue, setQueue] = useState<QueueSong[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [autoDJ, setAutoDJ] = useState(true);
+
+  // Cargar cola desde Supabase
+  React.useEffect(() => {
+    if (!params.sessionId) {
+      setQueue(MOCK_QUEUE);
+      setLoading(false);
+      return;
+    }
+
+    const loadQueue = async () => {
+      const { data, error } = await supabase
+        .from('ws_songs')
+        .select(`
+          id, title, artist, cover_url, votes, status, duration_ms, created_at,
+          requested_by:ws_profiles!user_id(display_name)
+        `)
+        .eq('session_id', params.sessionId)
+        .order('status', { ascending: true })
+        .order('votes', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        setQueue(data.map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          artist: s.artist,
+          albumArt: s.cover_url || '',
+          requester: s.requested_by?.display_name || 'Usuario',
+          requesterAvatar: '👤',
+          votes: s.votes || 0,
+          status: s.status as SongStatus,
+          duration: s.duration_ms ? `${Math.floor(s.duration_ms / 60000)}:${String(Math.floor((s.duration_ms % 60000) / 1000)).padStart(2, '0')}` : '0:00',
+          addedAt: new Date(s.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        })));
+      } else {
+        setQueue(MOCK_QUEUE);
+      }
+      setLoading(false);
+    };
+
+    loadQueue();
+
+    // Suscripción realtime
+    const channel = supabase
+      .channel(`dj-queue:${params.sessionId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ws_songs', filter: `session_id=eq.${params.sessionId}` }, () => loadQueue())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [params.sessionId]);
 
   const counts = {
     all: queue.length,
@@ -171,13 +225,23 @@ export default function DJQueueScreen() {
     ? queue.filter(s => s.status === 'pending')
     : queue.filter(s => s.status === 'approved' || s.status === 'playing');
 
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
     setQueue(prev => prev.map(s => s.id === id ? { ...s, status: 'approved' as SongStatus } : s));
+    await supabase.from('ws_songs').update({ status: 'approved' }).eq('id', id);
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
     setQueue(prev => prev.map(s => s.id === id ? { ...s, status: 'rejected' as SongStatus } : s));
+    await supabase.from('ws_songs').update({ status: 'rejected' }).eq('id', id);
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

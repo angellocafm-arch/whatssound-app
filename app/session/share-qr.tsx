@@ -17,17 +17,42 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
+import { supabase } from '../../src/lib/supabase';
+
 // ─── Main Screen ─────────────────────────────────────────────
 
 export default function ShareQRScreen() {
   const router = useRouter();
-  const { id, name, dj, genre } = useLocalSearchParams<{ id: string; name: string; dj: string; genre: string }>();
+  const { id, name, dj, genre, sessionId } = useLocalSearchParams<{ id: string; name: string; dj: string; genre: string; sessionId: string }>();
   const [copied, setCopied] = useState(false);
+  const [sessionData, setSessionData] = useState<{ name: string; djName: string; genre: string } | null>(null);
 
-  const sessionName = name || 'Viernes Latino 🔥';
-  const djName = dj || 'Carlos Madrid';
-  const sessionGenre = genre || 'Reggaetón';
-  const sessionUrl = `whatssound.app/s/${id || 'abc123'}`;
+  // Cargar datos de sesión si no se pasan por params
+  React.useEffect(() => {
+    const sid = sessionId || id;
+    if (sid && !name) {
+      (async () => {
+        const { data } = await supabase
+          .from('ws_sessions')
+          .select('name, genres, dj:ws_profiles!dj_id(display_name, dj_name)')
+          .eq('id', sid)
+          .single();
+        if (data) {
+          setSessionData({
+            name: data.name,
+            djName: (data.dj as any)?.dj_name || (data.dj as any)?.display_name || 'DJ',
+            genre: data.genres?.[0] || 'Música',
+          });
+        }
+      })();
+    }
+  }, [id, sessionId, name]);
+
+  const actualId = sessionId || id || 'abc123';
+  const sessionName = sessionData?.name || name || 'Sesión WhatsSound';
+  const djName = sessionData?.djName || dj || 'DJ';
+  const sessionGenre = sessionData?.genre || genre || 'Música';
+  const sessionUrl = `whatssound.app/s/${actualId}`;
 
   const handleShare = async () => {
     await Share.share({
