@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { searchTracks, DeezerTrack, formatDuration, getAlbumCoverUrl } from '../lib/deezer';
 import { useDebounce } from '../hooks/useDebounce';
 import AudioPreview from './AudioPreview';
-import colors from '../theme/colors';
+import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 
 interface SongSearchProps {

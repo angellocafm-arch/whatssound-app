@@ -30,5 +30,5 @@ export { UpcomingSessions } from './discover/UpcomingSessions';
 
 // Other Components
 export { default as AudioPreview } from './AudioPreview';
-export { default as SongCard } from './SongCard';
+export { SongCard } from './SongCard';
 export { default as SongSearch } from './SongSearch';
