@@ -8,3 +8,6 @@ referencia/
 .vercel
 .env*.local
 capturas/
+
+# Credenciales locales
+.credentials/
