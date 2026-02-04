@@ -9,3 +9,4 @@ export { usePresence, type PresenceUser } from './usePresence';
 export { useRealtimeChat } from './useRealtimeChat';
 export { useRealtimeVotes } from './useRealtimeVotes';
 export { useSessions, useProfiles, useSessionStats, type SessionData, type ProfileData } from './useSupabaseQuery';
+export { useBackgroundAudio, type Song as BackgroundAudioSong } from './useBackgroundAudio';

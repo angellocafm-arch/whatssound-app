@@ -18,7 +18,11 @@
       "bundleIdentifier": "com.whatssound.app",
       "associatedDomains": [
         "applinks:whatssound-app.vercel.app"
-      ]
+      ],
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "WhatsSound usa el micrófono para mensajes de voz."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,6 +30,11 @@
         "backgroundColor": "#0B141A"
       },
       "package": "com.whatssound.app",
+      "permissions": [
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "WAKE_LOCK"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -48,7 +57,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "WhatsSound usa el micrófono para mensajes de voz."
+        }
+      ]
     ]
   }
 }
