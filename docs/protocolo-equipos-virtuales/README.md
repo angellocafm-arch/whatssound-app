@@ -52,6 +52,9 @@ Misma dinámica que Fase 3 pero con el equipo ampliado. Consolidación final del
 ### 🚀 **08-PREPARACION-EJECUCION.md** — Fase 8: Preparación Final
 Últimos pasos antes de la ejecución masiva. KPIs, dependencias y aprobación final del director.
 
+### 🔄 **09-POSTMORTEM-MEJORA.md** — Fase 9: Post-Mortem y Mejora Continua
+Cómo cerrar cada sesión de trabajo: marcar versión funcional, documentar problemas, actualizar protocolos, y preparar onboarding para nuevos agentes. Incluye templates, checklists y el ciclo de mejora continua.
+
 ## 💡 Casos de Éxito Documentados
 
 ### 🛡️ Proyecto "Dame un OK" 
