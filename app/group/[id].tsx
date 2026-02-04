@@ -70,94 +70,48 @@ function getSenderColor(userId: string): string {
   return SENDER_COLORS[Math.abs(hash) % SENDER_COLORS.length];
 }
 
-// Mock data para demo - Conversación grupal tipo WhatsApp
-const MOCK_GROUP_MESSAGES: ChatMessage[] = [
-  {
-    id: 'sys-1',
-    content: 'María García creó el grupo "Amigos Madrid 🎉"',
-    user_id: '',
-    is_system: true,
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    display_name: '',
+// Mock data por grupo - debe coincidir con groups.tsx
+const MOCK_GROUPS_DATA: Record<string, { name: string; memberCount: number; messages: ChatMessage[] }> = {
+  g1: {
+    name: 'Reggaetoneros Madrid 🔥',
+    memberCount: 234,
+    messages: [
+      { id: 'sys-1', content: 'Carlos Madrid creó el grupo', user_id: '', is_system: true, created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), display_name: '' },
+      { id: 'msg-1', content: '¡Bienvenidos todos al grupo de reggaetón de Madrid! 🔥🎧', user_id: 'carlos-1', is_system: false, created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), display_name: 'Carlos Madrid' },
+      { id: 'msg-2', content: 'Buenas! Por fin un grupo de reggaetón en condiciones 🙌', user_id: 'pablo-2', is_system: false, created_at: new Date(Date.now() - 1.8 * 60 * 60 * 1000).toISOString(), display_name: 'Pablo R.' },
+      { id: 'msg-3', content: '¿Alguien sabe si DJ Carlos pincha esta noche?', user_id: 'ana-3', is_system: false, created_at: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString(), display_name: 'Ana López' },
+      { id: 'msg-4', content: 'Sí! Sesión a las 22:00 en el rooftop 🎉', user_id: 'maria-4', is_system: false, created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), display_name: 'María G.' },
+      { id: 'msg-5', content: 'Alguien comparte el link de la sesión?', user_id: 'diego-5', is_system: false, created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), display_name: 'Diego F.' },
+      { id: 'msg-6', content: 'https://whatssound.app/session/carlos-madrid 👆', user_id: 'carlos-1', is_system: false, created_at: new Date(Date.now() - 40 * 60 * 1000).toISOString(), display_name: 'Carlos Madrid' },
+      { id: 'msg-7', content: 'TEMAAZO lo que acaba de sonar 🔥🔥🔥', user_id: 'sofia-6', is_system: false, created_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), display_name: 'Sofía T.' },
+      { id: 'msg-8', content: 'Pepas! El himno jajaja', user_id: 'pablo-2', is_system: false, created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(), display_name: 'Pablo R.' },
+      { id: 'msg-9', content: '¿Alguien va a la sesión de Carlos esta noche? 🎧', user_id: 'maria-4', is_system: false, created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(), display_name: 'María G.' },
+    ],
   },
-  {
-    id: 'msg-1',
-    content: '¡Hola a todos! Bienvenidos al grupo 👋',
-    user_id: 'maria-1',
-    is_system: false,
-    created_at: new Date(Date.now() - 1.9 * 60 * 60 * 1000).toISOString(),
-    display_name: 'María García',
+  g2: {
+    name: 'Techno Underground BCN 🎛️',
+    memberCount: 178,
+    messages: [
+      { id: 'sys-1', content: 'Alex creó el grupo', user_id: '', is_system: true, created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), display_name: '' },
+      { id: 'msg-1', content: 'Nuevo set de KRTL subido, brutal 🔊', user_id: 'alex-1', is_system: false, created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), display_name: 'Alex' },
+      { id: 'msg-2', content: 'Lo estoy escuchando ahora, menudo viaje 🚀', user_id: 'nerea-2', is_system: false, created_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), display_name: 'Nerea BCN' },
+    ],
   },
-  {
-    id: 'msg-2',
-    content: 'Gracias por la invitación María! 🙌',
-    user_id: 'carlos-2',
-    is_system: false,
-    created_at: new Date(Date.now() - 1.8 * 60 * 60 * 1000).toISOString(),
-    display_name: 'Carlos López',
-  },
-  {
-    id: 'msg-3',
-    content: 'Hola!! Qué buena idea crear este grupo',
-    user_id: 'ana-3',
-    is_system: false,
-    created_at: new Date(Date.now() - 1.7 * 60 * 60 * 1000).toISOString(),
-    display_name: 'Ana Martín',
-  },
-  {
-    id: 'msg-4',
-    content: 'Oye, ¿quedamos este finde para la sesión de DJ Carlos?',
-    user_id: 'maria-1',
-    is_system: false,
-    created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-    display_name: 'María García',
-  },
-  {
-    id: 'msg-5',
-    content: 'Por mí perfecto, el sábado estoy libre 🎧',
-    user_id: 'carlos-2',
-    is_system: false,
-    created_at: new Date(Date.now() - 55 * 60 * 1000).toISOString(),
-    display_name: 'Carlos López',
-  },
-  {
-    id: 'msg-6',
-    content: 'Yo también puedo el sábado! A qué hora?',
-    user_id: 'ana-3',
-    is_system: false,
-    created_at: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
-    display_name: 'Ana Martín',
-  },
-  {
-    id: 'msg-7',
-    content: 'La sesión empieza a las 22:00, pero podemos quedar antes para cenar 🍕',
-    user_id: 'maria-1',
-    is_system: false,
-    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    display_name: 'María García',
-  },
-  {
-    id: 'msg-8',
-    content: 'Genial! Os paso la ubicación luego',
-    user_id: 'carlos-2',
-    is_system: false,
-    created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    display_name: 'Carlos López',
-  },
-  {
-    id: 'msg-9',
-    content: '¡Perfecto! Nos vemos el sábado entonces 🔥',
-    user_id: 'ana-3',
-    is_system: false,
-    created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    display_name: 'Ana Martín',
-  },
-];
-
-const MOCK_GROUP_INFO = {
-  name: 'Amigos Madrid 🎉',
-  memberCount: 3,
 };
+
+// Default mock para IDs no mapeados
+const DEFAULT_MOCK = {
+  name: 'Grupo Demo 🎵',
+  memberCount: 42,
+  messages: [
+    { id: 'sys-1', content: 'Bienvenido al grupo', user_id: '', is_system: true, created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(), display_name: '' },
+    { id: 'msg-1', content: '¡Hola a todos! 👋', user_id: 'user-1', is_system: false, created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), display_name: 'Usuario Demo' },
+  ],
+};
+
+function getMockDataForGroup(groupId: string) {
+  return MOCK_GROUPS_DATA[groupId] || DEFAULT_MOCK;
+}
 
 interface ChatMessage {
   id: string;
@@ -226,7 +180,8 @@ export default function GroupChatScreen() {
     
     // Modo demo o ID especial: usar mensajes mock (bypass total a Supabase)
     if (isGroupDemo(id)) {
-      setMessages(MOCK_GROUP_MESSAGES);
+      const mockData = getMockDataForGroup(id);
+      setMessages(mockData.messages);
       return;
     }
     
@@ -255,8 +210,9 @@ export default function GroupChatScreen() {
     
     // Modo demo o ID especial: usar info mock (bypass total a Supabase)
     if (isGroupDemo(id)) {
-      setGroupName(MOCK_GROUP_INFO.name);
-      setMemberCount(MOCK_GROUP_INFO.memberCount);
+      const mockData = getMockDataForGroup(id);
+      setGroupName(mockData.name);
+      setMemberCount(mockData.memberCount);
       return;
     }
     
