@@ -87,8 +87,8 @@ export function usePresence(sessionId: string | undefined): UsePresenceReturn {
         // Trackear mi presencia
         const presenceData = {
           user_id: user?.id || `anon-${Date.now()}`,
-          user_name: user?.display_name || 'Oyente',
-          user_avatar: user?.avatar_url || null,
+          user_name: user?.user_metadata?.display_name || 'Oyente',
+          user_avatar: user?.user_metadata?.avatar_url || null,
           joined_at: new Date().toISOString(),
         };
         
@@ -107,7 +107,7 @@ export function usePresence(sessionId: string | undefined): UsePresenceReturn {
       setIsConnected(false);
       console.log('[Presence] Desconectado de sesión:', sessionId);
     };
-  }, [sessionId, user?.id, user?.display_name, user?.avatar_url]);
+  }, [sessionId, user?.id, user?.user_metadata?.display_name, user?.user_metadata?.avatar_url]);
 
   return { users, count, isConnected };
 }

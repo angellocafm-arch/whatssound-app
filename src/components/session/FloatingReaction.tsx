@@ -43,10 +43,10 @@ export function FloatingReaction({ emoji, startX, onComplete }: Props) {
 
     // Movimiento ondulante horizontal
     translateX.value = withSequence(
-      withTiming(25, { duration: 550, easing: Easing.inOut(Easing.sine) }),
-      withTiming(-25, { duration: 550, easing: Easing.inOut(Easing.sine) }),
-      withTiming(15, { duration: 550, easing: Easing.inOut(Easing.sine) }),
-      withTiming(-10, { duration: 550, easing: Easing.inOut(Easing.sine) })
+      withTiming(25, { duration: 550, easing: Easing.inOut(Easing.sin) }),
+      withTiming(-25, { duration: 550, easing: Easing.inOut(Easing.sin) }),
+      withTiming(15, { duration: 550, easing: Easing.inOut(Easing.sin) }),
+      withTiming(-10, { duration: 550, easing: Easing.inOut(Easing.sin) })
     );
 
     // Fade out al final

@@ -29,6 +29,6 @@ export { DJRanking } from './discover/DJRanking';
 export { UpcomingSessions } from './discover/UpcomingSessions';
 
 // Other Components
-export { AudioPreview } from './AudioPreview';
-export { SongCard } from './SongCard';
-export { SongSearch } from './SongSearch';
+export { default as AudioPreview } from './AudioPreview';
+export { default as SongCard } from './SongCard';
+export { default as SongSearch } from './SongSearch';

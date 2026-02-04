@@ -8,4 +8,4 @@ export { useDeepLinking, createShareUrl, createNativeUrl } from './useDeepLinkin
 export { usePresence, type PresenceUser } from './usePresence';
 export { useRealtimeChat } from './useRealtimeChat';
 export { useRealtimeVotes } from './useRealtimeVotes';
-export { useSupabaseQuery } from './useSupabaseQuery';
+export { useSessions, useProfiles, useSessionStats, type SessionData, type ProfileData } from './useSupabaseQuery';
