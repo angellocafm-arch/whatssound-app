@@ -1,35 +1,24 @@
-/**
- * WhatsSound — Cron: Regenerar Golden Boosts
- * Vercel Edge Function
- * Ejecutar cada VIERNES a las 11:00 UTC (12:00 CET)
- * 
- * Usa la función SQL existente: reset_weekly_golden_boosts()
- */
-
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-export const config = {
-  runtime: 'edge',
-};
+/**
+ * WhatsSound — Cron: Regenerar Golden Boosts
+ * Vercel Serverless Function (Node.js)
+ * Ejecutar cada VIERNES a las 11:00 UTC (12:00 CET)
+ */
 
-export default async function handler(request: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Solo GET
-  if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   // Verificar autorización en producción
-  const authHeader = request.headers.get('authorization');
+  const authHeader = req.headers.authorization;
   const cronSecret = process.env.CRON_SECRET;
   
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const supabase = createClient(
@@ -83,32 +72,20 @@ export default async function handler(request: Request) {
 
     console.log(`[Cron] Golden Boosts regenerados. ${usersWithBoost} usuarios, ${bonusGiven} bonus.`);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: '¡Golden Boosts regenerados! Viernes antes de comer 🎉',
-        usersWithBoost: usersWithBoost || 0,
-        bonusGiven,
-        timestamp: new Date().toISOString(),
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return res.status(200).json({
+      success: true,
+      message: '¡Golden Boosts regenerados! Viernes antes de comer 🎉',
+      usersWithBoost: usersWithBoost || 0,
+      bonusGiven,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('[Cron] Error:', error);
     
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: String(error),
-        timestamp: new Date().toISOString(),
-      }),
-      { 
-        status: 500, 
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return res.status(500).json({ 
+      success: false, 
+      error: String(error),
+      timestamp: new Date().toISOString(),
+    });
   }
 }
