@@ -79,3 +79,4 @@ supabase/      # Migraciones SQL
 docs/          # Documentación completa
 capturas/      # Screenshots (solo local, en .gitignore)
 ```
+
