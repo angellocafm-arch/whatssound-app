@@ -21,6 +21,7 @@ import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { supabase } from '../../src/lib/supabase';
 import { shouldShowSeed } from '../../src/lib/seed-filter';
+import { SkeletonList, SessionCardSkeleton, Skeleton } from '../../src/components/ui/Skeleton';
 
 // ═══════════════════════════════════════════════════════════
 // Mock data for demo — realistic DJ sessions
@@ -286,11 +287,21 @@ export default function LiveScreen() {
         ))}
       </ScrollView>
 
-      {/* Loading */}
+      {/* Loading Skeletons */}
       {loading && !refreshing && (
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.stateText}>Cargando sesiones...</Text>
+        <View style={styles.skeletonContainer}>
+          {/* Featured skeleton */}
+          <View style={styles.featuredSkeleton}>
+            <Skeleton width="30%" height={20} borderRadius={10} />
+            <Skeleton width="70%" height={24} borderRadius={6} style={{ marginTop: 16 }} />
+            <Skeleton width="50%" height={14} borderRadius={4} style={{ marginTop: 8 }} />
+            <View style={{ flexDirection: 'row', marginTop: 16, gap: 8 }}>
+              <Skeleton width={80} height={32} borderRadius={16} />
+              <Skeleton width={60} height={32} borderRadius={16} />
+            </View>
+          </View>
+          {/* Session list skeletons */}
+          <SkeletonList count={4} type="session" />
         </View>
       )}
 
@@ -541,4 +552,16 @@ const styles = StyleSheet.create({
   },
   stateTitle: { ...typography.h3, color: colors.textPrimary },
   stateText: { ...typography.bodySmall, color: colors.textMuted, textAlign: 'center' },
+
+  // Skeleton loading
+  skeletonContainer: {
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.md,
+  },
+  featuredSkeleton: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
 });
