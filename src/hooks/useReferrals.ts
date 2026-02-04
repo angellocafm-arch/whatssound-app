@@ -5,7 +5,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Share, Platform } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+// Clipboard: usar API nativa en web, expo-clipboard en native
+const Clipboard = Platform.OS === 'web' 
+  ? { setStringAsync: async (text: string) => { await navigator.clipboard.writeText(text); } }
+  : require('expo-clipboard');
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 
