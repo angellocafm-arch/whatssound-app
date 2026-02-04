@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { FloatingReaction } from './FloatingReaction';
 import { supabase } from '../../lib/supabase';
 
@@ -97,6 +98,11 @@ export function FloatingReactionsContainer({ sessionId }: Props) {
  * Función para enviar reacción (llamar desde botones de reacción)
  */
 export async function sendReaction(sessionId: string, emoji: string, userId?: string) {
+  // Haptic feedback (solo en dispositivos nativos)
+  if (Platform.OS !== 'web') {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
+
   // Mostrar localmente
   floatingReactionsRef.addReaction(emoji);
 
