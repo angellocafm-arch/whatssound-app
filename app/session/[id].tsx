@@ -17,6 +17,7 @@ import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { supabase } from '../../src/lib/supabase';
 import { PresenceBar } from '../../src/components/session/PresenceBar';
+import { FloatingReactionsContainer, sendReaction } from '../../src/components/session/FloatingReactionsContainer';
 // AudioPreview temporarily disabled — will re-enable after fixing
 // import AudioPreview from '../../src/components/AudioPreview';
 
@@ -251,6 +252,7 @@ export default function SessionScreen() {
   }, []);
 
   const react = useCallback((emoji: string) => {
+    // Animación local legacy
     const rid = `r${Date.now()}${Math.random()}`;
     const a = new Animated.Value(0);
     const x = Math.random()*(SCREEN_WIDTH-60)+20;
@@ -258,7 +260,9 @@ export default function SessionScreen() {
     Animated.timing(a, { toValue:1, duration:1500, useNativeDriver:true }).start(() =>
       setFloats(p => p.filter(r => r.id !== rid))
     );
-  }, []);
+    // Nuevo: Broadcast a otros usuarios via Supabase
+    if (id) sendReaction(id as string, emoji, user);
+  }, [id, user]);
 
   const send = () => {
     if (!msg.trim()) return;
@@ -476,6 +480,7 @@ export default function SessionScreen() {
     <SafeAreaView style={s.container}>
       <Header />
       <PresenceBar sessionId={id as string} />
+      <FloatingReactionsContainer sessionId={id as string} />
       <View style={{flex:1}}>
         {tab === 'player' && <Player />}
         {tab === 'chat' && <Chat />}
