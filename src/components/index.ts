@@ -18,6 +18,8 @@ export { ShareButton, ShareButtonFilled } from './session/ShareButton';
 export { SessionPulse, useSessionActivity } from './session/SessionPulse';
 export { TipButton } from './session/TipButton';
 export { TipNotificationContainer, TipMessage } from './session/TipNotification';
+export { SongRequestButton, SongRequestModal } from './session/SongRequest';
+export { SongQueue, MiniQueue, type QueuedSong } from './session/SongQueue';
 
 // Profile Components
 export { StreakCard, StreakBadge } from './profile/StreakCard';
