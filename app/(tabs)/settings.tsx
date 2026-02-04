@@ -80,6 +80,8 @@ export default function SettingsScreen() {
       <SectionHeader title="CUENTA" />
       <View style={styles.section}>
         <SettingItem icon="person-outline" title="Perfil de DJ" subtitle="Configura tu perfil como DJ" onPress={() => router.push('/settings/dj-profile')} />
+        <SettingItem icon="stats-chart" title="Mi Dashboard" subtitle="Métricas y estadísticas" onPress={() => router.push('/dj-dashboard')} />
+        <SettingItem icon="diamond-outline" title="Suscripción" subtitle="Gestiona tu plan" onPress={() => router.push('/subscription')} />
         <SettingItem icon="card-outline" title="Pagos y propinas" subtitle="Métodos de pago, historial" />
         <SettingItem icon="trophy" title="Golden Boosts" subtitle="Tu historial de reconocimientos" onPress={() => router.push('/profile/golden-history')} />
         <SettingItem icon="gift-outline" title="Invitar amigos" subtitle="Comparte tu código y gana" onPress={() => router.push('/invite')} />
