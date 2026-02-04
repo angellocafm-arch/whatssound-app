@@ -15,3 +15,4 @@ export { usePushNotifications, useNotificationBadge } from './usePushNotificatio
 export { useListeningStreak, getStreakEmoji, getStreakLabel } from './useListeningStreak';
 export { useBadges, type Badge, type UserBadge } from './useBadges';
 export { useAudioSync, type SyncState } from './useAudioSync';
+export { useReferrals, type Referral } from './useReferrals';
