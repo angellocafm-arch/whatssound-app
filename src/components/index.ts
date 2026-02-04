@@ -32,3 +32,4 @@ export { UpcomingSessions } from './discover/UpcomingSessions';
 export { default as AudioPreview } from './AudioPreview';
 export { SongCard } from './SongCard';
 export { default as SongSearch } from './SongSearch';
+export { TipModal } from './TipModal';
