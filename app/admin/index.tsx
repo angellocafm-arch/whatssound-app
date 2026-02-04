@@ -227,6 +227,22 @@ export default function AdminDashboard() {
           </View>
         </View>
 
+        {/* Quick Links */}
+        <View style={s.quickLinks}>
+          <TouchableOpacity style={s.quickLink} onPress={() => router.push('/admin/simulator')}>
+            <Ionicons name="game-controller" size={20} color={colors.primary} />
+            <Text style={s.quickLinkText}>🎛️ Simulador</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.quickLink} onPress={() => router.push('/admin/revenue')}>
+            <Ionicons name="cash" size={20} color={colors.warning} />
+            <Text style={s.quickLinkText}>💰 Revenue</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.quickLink} onPress={() => router.push('/admin/config')}>
+            <Ionicons name="settings" size={20} color={colors.textSecondary} />
+            <Text style={s.quickLinkText}>⚙️ Config</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* KPI Grid */}
         <SectionHeader icon="📊" title="Métricas clave" />
         <View style={s.statsGrid}>
@@ -369,12 +385,17 @@ const s = StyleSheet.create({
   mainContent: { padding: isWide ? spacing.xl : spacing.md, paddingBottom: spacing['4xl'] },
 
   // Header
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   headerTitle: { ...typography.h1, color: colors.textPrimary, fontSize: 28 },
   headerSub: { ...typography.caption, color: colors.textMuted, fontSize: 13, marginTop: 2 },
   headerBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primary + '15', paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.full },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
   headerLive: { ...typography.captionBold, color: colors.primary, fontSize: 13 },
+
+  // Quick Links
+  quickLinks: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  quickLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border },
+  quickLinkText: { ...typography.bodySmall, color: colors.textPrimary },
 
   // Section
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.sm },
