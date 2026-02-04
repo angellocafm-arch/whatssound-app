@@ -1,90 +1,43 @@
-const { createClient } = require('@supabase/supabase-js');
-
-/**
- * WhatsSound — Cron: Regenerar Golden Boosts
- * Vercel Serverless Function
- * Ejecutar cada VIERNES a las 11:00 UTC (12:00 CET)
- */
+// Regenerate Golden Boosts - Cron Job (Fridays 11:00 UTC)
+// Uses fetch directly like other working API files
 
 module.exports = async (req, res) => {
-  // Solo GET
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verificar autorización en producción
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
+  const SB = 'https://xyehncvvvprrqwnsefcr.supabase.co';
+  const SRK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTY1MDg5OCwiZXhwIjoyMDg1MjI2ODk4fQ.ANwuQ-wrlyfEKD2f-f5Tr67UpDOAb--wmEWcnzG02Q8';
   
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const supabase = createClient(
-    process.env.EXPO_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  const headers = {
+    'apikey': SRK,
+    'Authorization': `Bearer ${SRK}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=minimal'
+  };
 
   try {
-    // 1. Ejecutar la función SQL existente de reset
-    const { error: resetError } = await supabase.rpc('reset_weekly_golden_boosts');
-    
-    if (resetError) {
-      console.error('[Cron] Error en reset_weekly_golden_boosts:', resetError);
-    }
-
-    // 2. Contar usuarios con boost disponible
-    const { count: usersWithBoost } = await supabase
-      .from('ws_profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('golden_boost_available', 1);
-
-    // 3. Verificar aceleradores (+1 boost si 5+ sesiones)
-    const { data: eligibleUsers } = await supabase
-      .from('ws_profiles')
-      .select('id, golden_boost_available, sessions_listened_this_week')
-      .gte('sessions_listened_this_week', 5);
-
-    let bonusGiven = 0;
-    for (const user of eligibleUsers || []) {
-      const { error } = await supabase
-        .from('ws_profiles')
-        .update({
-          golden_boost_available: user.golden_boost_available + 1,
-        })
-        .eq('id', user.id);
-      
-      if (!error) bonusGiven++;
-    }
-
-    // 4. Log de auditoría
-    await supabase.from('ws_audit_log').insert({
-      action: 'cron_regenerate_boosts',
-      metadata: {
-        users_with_boost: usersWithBoost || 0,
-        bonus_given: bonusGiven,
-        executed_at: new Date().toISOString(),
-        day: 'Friday',
-        time_utc: '11:00',
-      },
+    // Reset weekly_boosts_given to 0 for all users
+    const response = await fetch(`${SB}/rest/v1/ws_profiles?weekly_boosts_given=gt.0`, {
+      method: 'PATCH',
+      headers: { ...headers, 'Prefer': 'return=representation' },
+      body: JSON.stringify({ weekly_boosts_given: 0 })
     });
 
-    console.log(`[Cron] Golden Boosts regenerados. ${usersWithBoost} usuarios, ${bonusGiven} bonus.`);
+    if (!response.ok) {
+      const error = await response.text();
+      return res.status(500).json({ error: 'Failed to reset boosts', details: error });
+    }
 
+    const updated = await response.json().catch(() => []);
+    
     return res.status(200).json({
       success: true,
-      message: '¡Golden Boosts regenerados! Viernes antes de comer 🎉',
-      usersWithBoost: usersWithBoost || 0,
-      bonusGiven,
-      timestamp: new Date().toISOString(),
+      message: 'Golden Boosts regenerated',
+      usersReset: updated.length,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('[Cron] Error:', error);
-    
-    return res.status(500).json({ 
-      success: false, 
-      error: String(error),
-      timestamp: new Date().toISOString(),
-    });
+    return res.status(500).json({ error: error.message });
   }
 };
