@@ -1,6 +1,7 @@
 /**
  * WhatsSound — Chat de Grupo (estilo WhatsApp)
  * Conectado a Supabase: mensajes reales, nombres de perfil, envío
+ * Updated: 2026-02-04T20:05 - Demo mode fix
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
