@@ -1,7 +1,7 @@
 /**
  * WhatsSound — DJ Stats Detalladas
  * Referencia: 23-dj-stats.png
- * Sesión actual, oyentes/hora (barras), top canciones, propinas, exportar
+ * Sesión actual, oyentes/hora (barras), top canciones, decibelios, exportar
  * CONECTADO A SUPABASE
  */
 

@@ -1,5 +1,5 @@
 /**
- * WhatsSound — Enviar Propina (Bottom Sheet style)
+ * WhatsSound — Enviar Volumen (Bottom Sheet style)
  * Referencia: 26-enviar-propina.png
  * 
  * CONECTADO A SUPABASE: guarda en ws_tips

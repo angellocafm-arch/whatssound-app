@@ -193,7 +193,7 @@ export default function TipsHistoryScreen() {
             <Text style={s.emptySub}>
               {tab === 'received' 
                 ? 'Cuando alguien te envíe decibelios, aparecerá aquí'
-                : 'Apoya a tus DJs favoritos con propinas'}
+                : 'Apoya a tus DJs favoritos con decibelios'}
             </Text>
           </View>
         ) : (
