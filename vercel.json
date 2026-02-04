@@ -8,7 +8,7 @@
   "crons": [
     {
       "path": "/api/cron/regenerate-boosts",
-      "schedule": "0 0 * * 0"
+      "schedule": "0 18 * * 5"
     }
   ]
 }

@@ -1,6 +1,7 @@
 /**
  * WhatsSound — Cron: Regenerar Golden Boosts
- * Ejecutar cada domingo a las 00:00 UTC
+ * Ejecutar cada VIERNES a las 18:00 UTC (19:00 España)
+ * Justo antes del fin de semana = máximo engagement
  * 
  * Vercel Cron: vercel.json → crons
  * URL: /api/cron/regenerate-boosts
