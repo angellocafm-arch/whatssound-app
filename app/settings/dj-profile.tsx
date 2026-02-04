@@ -130,8 +130,8 @@ export default function DJProfileScreen() {
 
       <View style={styles.toggleRow}>
         <View style={styles.toggleInfo}>
-          <Text style={styles.toggleLabel}>Aceptar propinas</Text>
-          <Text style={styles.toggleDesc}>Permite que fans te envíen propinas durante sesiones</Text>
+          <Text style={styles.toggleLabel}>Aceptar decibelios</Text>
+          <Text style={styles.toggleDesc}>Permite que fans te envíen decibelios durante sesiones</Text>
         </View>
         <Switch
           value={acceptTips}

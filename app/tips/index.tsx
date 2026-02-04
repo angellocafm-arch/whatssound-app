@@ -133,7 +133,7 @@ export default function TipsHistoryScreen() {
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Propinas</Text>
+        <Text style={s.headerTitle}>Volumen</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -141,7 +141,7 @@ export default function TipsHistoryScreen() {
       {!paymentStatus.enabled && (
         <View style={s.testBanner}>
           <Ionicons name="flask" size={14} color={colors.warning} />
-          <Text style={s.testBannerText}>Modo demo: las propinas son simuladas</Text>
+          <Text style={s.testBannerText}>Modo demo: las decibelios son simulados</Text>
         </View>
       )}
 
@@ -188,11 +188,11 @@ export default function TipsHistoryScreen() {
           <View style={s.emptyState}>
             <Ionicons name="cash-outline" size={48} color={colors.textMuted} />
             <Text style={s.emptyTitle}>
-              {tab === 'received' ? 'No has recibido propinas aún' : 'No has enviado propinas aún'}
+              {tab === 'received' ? 'No has recibido decibelios aún' : 'No has enviado decibelios aún'}
             </Text>
             <Text style={s.emptySub}>
               {tab === 'received' 
-                ? 'Cuando alguien te envíe una propina, aparecerá aquí'
+                ? 'Cuando alguien te envíe decibelios, aparecerá aquí'
                 : 'Apoya a tus DJs favoritos con propinas'}
             </Text>
           </View>

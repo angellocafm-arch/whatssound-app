@@ -188,7 +188,7 @@ export default function SongDetailScreen() {
         {/* Stats */}
         <View style={s.statsRow}>
           <Text style={s.stat}>👍 {song.votes} votos</Text>
-          <Text style={s.stat}>💰 {tipCount} propinas</Text>
+          <Text style={s.stat}>💰 {tipCount} decibelios</Text>
           <Text style={s.stat}>👤 {song.requested_by?.display_name || 'Usuario'}</Text>
         </View>
 
@@ -213,7 +213,7 @@ export default function SongDetailScreen() {
             onPress={handleTip}
           >
             <Ionicons name="cash" size={20} color={colors.warning} />
-            <Text style={[s.actionText, { color: colors.warning }]}>Propina</Text>
+            <Text style={[s.actionText, { color: colors.warning }]}>Volumen</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[s.actionBtn, { backgroundColor: '#1DB954' + '30' }]}

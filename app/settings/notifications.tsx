@@ -31,8 +31,8 @@ const NOTIF_SETTINGS: { section: string; items: NotifToggle[] }[] = [
   {
     section: 'PROPINAS',
     items: [
-      { key: 'tip_received', title: 'Propina recibida', subtitle: 'Cuando recibes una propina como DJ', icon: 'cash', default: true },
-      { key: 'tip_message', title: 'Mensaje con propina', subtitle: 'Cuando una propina incluye mensaje', icon: 'chatbox', default: true },
+      { key: 'tip_received', title: 'Volumen recibido', subtitle: 'Cuando recibes una decibelios como DJ', icon: 'cash', default: true },
+      { key: 'tip_message', title: 'Mensaje con propina', subtitle: 'Cuando una decibelios incluyen mensaje', icon: 'chatbox', default: true },
     ],
   },
   {

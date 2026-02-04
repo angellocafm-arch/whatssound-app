@@ -102,7 +102,7 @@ export function TipModal({ visible, onClose, djId, djName, djAvatar, sessionId }
           {/* State: Select */}
           {state === 'select' && (
             <>
-              <Text style={styles.title}>💸 Enviar Propina</Text>
+              <Text style={styles.title}>💸 Enviar Volumen</Text>
 
               {/* DJ Info */}
               <View style={styles.djInfo}>
@@ -171,7 +171,7 @@ export function TipModal({ visible, onClose, djId, djName, djAvatar, sessionId }
               {/* Summary */}
               <View style={styles.summary}>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Propina:</Text>
+                  <Text style={styles.summaryLabel}>Volumen:</Text>
                   <Text style={styles.summaryValue}>{formatAmount(amountCents)}</Text>
                 </View>
                 <View style={styles.summaryRow}>
@@ -224,13 +224,13 @@ export function TipModal({ visible, onClose, djId, djName, djAvatar, sessionId }
           {/* State: Success */}
           {state === 'success' && (
             <View style={styles.centerContent}>
-              <Text style={styles.title}>🎉 ¡Propina Enviada!</Text>
+              <Text style={styles.title}>🎉 ¡Volumen Enviado!</Text>
               <View style={styles.successIcon}>
                 <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
               </View>
               <Text style={styles.successText}>Gracias por apoyar a</Text>
               <Text style={styles.successDj}>{djName}</Text>
-              <Text style={styles.successAmount}>Tu propina: {formatAmount(amountCents)}</Text>
+              <Text style={styles.successAmount}>Tu volumen: {formatAmount(amountCents)}</Text>
               <Pressable style={styles.closeButton} onPress={handleClose}>
                 <Text style={styles.closeButtonText}>Cerrar</Text>
               </Pressable>

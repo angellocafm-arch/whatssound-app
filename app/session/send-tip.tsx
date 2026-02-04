@@ -88,7 +88,7 @@ export default function SendTipScreen() {
         <View style={s.overlay} />
         <View style={s.successSheet}>
           <Ionicons name="checkmark-circle" size={64} color={colors.primary} />
-          <Text style={s.successTitle}>¡Propina enviada!</Text>
+          <Text style={s.successTitle}>¡Volumen enviado!</Text>
           <Text style={s.successAmount}>€{amount}</Text>
           <Text style={s.successSub}>{djName} te lo agradece 🙌</Text>
           {!paymentStatus.enabled && (
@@ -119,13 +119,13 @@ export default function SendTipScreen() {
         {!paymentStatus.enabled && (
           <View style={s.testBanner}>
             <Ionicons name="flask" size={16} color={colors.warning} />
-            <Text style={s.testBannerText}>Modo demo: propinas sin cargo real</Text>
+            <Text style={s.testBannerText}>Modo demo: decibelios sin cargo real</Text>
           </View>
         )}
 
         {/* Title */}
-        <Text style={s.title}>Propina para {djName} 🎧</Text>
-        <Text style={s.subtitle}>Apoya al DJ con una propina</Text>
+        <Text style={s.title}>Volumen para {djName} 🎧</Text>
+        <Text style={s.subtitle}>Apoya al DJ con decibelios</Text>
 
         {/* Amount pills */}
         <View style={s.amountsRow}>
@@ -197,7 +197,7 @@ export default function SendTipScreen() {
         {amount > 0 && (
           <View style={s.summary}>
             <View style={s.summaryRow}>
-              <Text style={s.summaryLabel}>Propina</Text>
+              <Text style={s.summaryLabel}>Volumen</Text>
               <Text style={s.summaryValue}>€{amount.toFixed(2)}</Text>
             </View>
             <View style={s.summaryRow}>
@@ -212,7 +212,7 @@ export default function SendTipScreen() {
         )}
 
         {/* Note */}
-        <Text style={s.note}>💡 Tu propina sube tu canción en la cola</Text>
+        <Text style={s.note}>💡 Tus decibelios suben tu canción en la cola</Text>
 
         {/* Error */}
         {error && (

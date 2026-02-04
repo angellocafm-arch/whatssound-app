@@ -173,8 +173,8 @@ export default function CreateSessionScreen() {
           
           <View style={s.toggleRow}>
             <View style={s.toggleInfo}>
-              <Text style={s.toggleLabel}>Propinas habilitadas</Text>
-              <Text style={s.toggleHint}>Recibe propinas de tus oyentes</Text>
+              <Text style={s.toggleLabel}>Volumen habilitado</Text>
+              <Text style={s.toggleHint}>Recibe decibelios de tus oyentes</Text>
             </View>
             <Switch 
               value={tipsEnabled} 

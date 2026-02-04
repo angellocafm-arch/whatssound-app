@@ -109,7 +109,7 @@ export function TipButton({ sessionId, djId, djName, onTipSent }: Props) {
 
     } catch (error) {
       console.error('[TipButton] Error:', error);
-      Alert.alert('Error', 'No se pudo procesar la propina');
+      Alert.alert('Error', 'No se pudo procesar el volumen');
     } finally {
       setSending(false);
     }
@@ -124,7 +124,7 @@ export function TipButton({ sessionId, djId, djName, onTipSent }: Props) {
       <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
         <Animated.View style={[styles.button, buttonAnimatedStyle]}>
           <Text style={styles.buttonEmoji}>💰</Text>
-          <Text style={styles.buttonText}>Propina</Text>
+          <Text style={styles.buttonText}>Volumen</Text>
         </Animated.View>
       </TouchableOpacity>
 
@@ -139,7 +139,7 @@ export function TipButton({ sessionId, djId, djName, onTipSent }: Props) {
             {/* Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {success ? '¡Propina enviada! 🎉' : `Propina para ${djName}`}
+                {success ? '¡Volumen enviado! 🎉' : `Volumen para ${djName}`}
               </Text>
               {!sending && !success && (
                 <TouchableOpacity 

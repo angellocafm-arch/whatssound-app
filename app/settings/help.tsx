@@ -15,7 +15,7 @@ const FAQ = [
   { q: '¿Cómo creo una sesión musical?', a: 'Ve a la pestaña "En Vivo" y pulsa "+ Crear". Elige nombre, género y configuración.' },
   { q: '¿Necesito Spotify para escuchar?', a: 'No. Solo el DJ necesita una cuenta de Spotify. Los oyentes escuchan directamente en la app.' },
   { q: '¿Cómo pido una canción?', a: 'Dentro de una sesión activa, pulsa "Pedir canción", busca y selecciona. Otros pueden votar tu petición.' },
-  { q: '¿Cómo funcionan las propinas?', a: 'Puedes enviar propinas al DJ desde €1. Las propinas con mensaje pueden subir tu canción en la cola.' },
+  { q: '¿Cómo funcionan los decibelios?', a: 'Puedes enviar decibelios al DJ desde €1. Las decibelios con mensaje pueden subir tu canción en la cola.' },
   { q: '¿Los grupos funcionan como WhatsApp?', a: 'Sí. Son chats normales que además pueden activar sesiones musicales cuando quieran.' },
   { q: '¿Cómo me hago DJ verificado?', a: 'Ve a Ajustes → Perfil de DJ. Tras 10 sesiones y buenas valoraciones, puedes solicitar verificación.' },
 ];

@@ -200,7 +200,7 @@ export default function StatsScreen() {
 
 ⏱️ Duración: ${stats.duration}
 👥 Pico: ${stats.peakListeners} oyentes
-💰 Propinas: €${stats.totalTips.toFixed(2)}
+💰 Decibelios: €${stats.totalTips.toFixed(2)}
 
 🎵 Top Canciones:
 ${topSongs.map(s => `${s.pos}. ${s.title} (${s.votes} votos)`).join('\n')}
@@ -302,7 +302,7 @@ ${tippers.map(t => `${t.name} — ${t.amount}`).join('\n')}
 
         {/* Tips */}
         <View style={s.card}>
-          <Text style={s.cardLabel}>PROPINAS</Text>
+          <Text style={s.cardLabel}>VOLUMEN</Text>
           <View style={s.tipsHeader}>
             <Text style={s.tipsTotal}>€{stats.totalTips.toFixed(2)}</Text>
             <Text style={s.tipsLabel}>total recibido</Text>
@@ -315,7 +315,7 @@ ${tippers.map(t => `${t.name} — ${t.amount}`).join('\n')}
               </View>
             ))
           ) : (
-            <Text style={s.emptyText}>Sin propinas aún</Text>
+            <Text style={s.emptyText}>Sin decibelios aún</Text>
           )}
         </View>
 

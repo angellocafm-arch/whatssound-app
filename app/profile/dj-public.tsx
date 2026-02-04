@@ -286,7 +286,7 @@ export default function DJPublicProfile() {
             </View>
             <View style={s.stat}>
               <Text style={s.statVal}>{formatNumber(stats.totalTips)}</Text>
-              <Text style={s.statLabel}>Propinas</Text>
+              <Text style={s.statLabel}>Decibelios</Text>
             </View>
           </View>
         )}

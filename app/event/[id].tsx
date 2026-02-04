@@ -70,14 +70,14 @@ export default function EventDetailScreen() {
           </View>
           <View style={styles.detailRow}>
             <Ionicons name="cash" size={18} color={colors.textSecondary} />
-            <Text style={styles.detailText}>Propinas activadas</Text>
+            <Text style={styles.detailText}>Decibelios activados</Text>
           </View>
         </Card>
 
         {/* Description */}
         <Text style={styles.sectionLabel}>DESCRIPCIÓN</Text>
         <Text style={styles.description}>
-          Sesión de sábado noche con lo mejor del urbano y reggaeton. Pide tus canciones, vota las de otros y dale propina al DJ si te mola. ¡Nos vemos! 🔥
+          Sesión de sábado noche con lo mejor del urbano y reggaeton. Pide tus canciones, vota las de otros y dale decibelios al DJ si te mola. ¡Nos vemos! 🔥
         </Text>
 
         {/* Interested users */}

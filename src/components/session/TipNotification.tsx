@@ -144,7 +144,7 @@ function TipNotificationItem({ tip, onComplete }: ItemProps) {
       <Text style={styles.emoji}>{getEmoji(tip.amount)}</Text>
       <View style={styles.content}>
         <Text style={styles.tipper}>{tip.tipperName}</Text>
-        <Text style={styles.message}>envió una propina</Text>
+        <Text style={styles.message}>envió volumen</Text>
       </View>
       <Text style={styles.amount}>{formatAmount(tip.amount)}</Text>
     </Animated.View>
@@ -162,7 +162,7 @@ export function TipMessage({ tipperName, amount }: { tipperName: string; amount:
         <Text style={styles.tipMessageName}>{tipperName}</Text>
         {' envió '}
         <Text style={styles.tipMessageAmount}>€{(amount / 100).toFixed(2)}</Text>
-        {' de propina'}
+        {' de volumen'}
       </Text>
     </View>
   );

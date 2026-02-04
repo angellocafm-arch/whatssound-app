@@ -143,7 +143,7 @@ export default function ProfileScreen() {
           </View>
           <View style={s.statBox}>
             <Text style={s.statValue}>{user.tips}</Text>
-            <Text style={s.statLabel}>Propinas</Text>
+            <Text style={s.statLabel}>Decibelios</Text>
           </View>
         </View>
 
