@@ -75,6 +75,7 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <SettingItem icon="person-outline" title="Perfil de DJ" subtitle="Configura tu perfil como DJ" onPress={() => router.push('/settings/dj-profile')} />
         <SettingItem icon="card-outline" title="Pagos y propinas" subtitle="Métodos de pago, historial" />
+        <SettingItem icon="trophy" title="Golden Boosts" subtitle="Tu historial de reconocimientos" onPress={() => router.push('/profile/golden-history')} />
         <SettingItem icon="notifications-outline" title="Notificaciones" subtitle="Sesiones, propinas, menciones" onPress={() => router.push('/settings/notifications')} />
         <SettingItem icon="lock-closed-outline" title="Privacidad" subtitle="Quién puede verte" onPress={() => router.push('/settings/privacy')} />
       </View>
