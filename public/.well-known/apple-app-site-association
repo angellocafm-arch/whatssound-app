@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.com.whatssound.app",
+        "paths": [
+          "/join/*",
+          "/session/*",
+          "/u/*",
+          "/dj/*",
+          "/event/*"
+        ]
+      }
+    ]
+  }
+}
