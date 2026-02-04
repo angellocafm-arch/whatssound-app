@@ -15,14 +15,32 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.whatssound.app"
+      "bundleIdentifier": "com.whatssound.app",
+      "associatedDomains": [
+        "applinks:whatssound-app.vercel.app"
+      ]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B141A"
       },
-      "package": "com.whatssound.app"
+      "package": "com.whatssound.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "whatssound" },
+            { 
+              "scheme": "https",
+              "host": "whatssound-app.vercel.app",
+              "pathPrefix": "/join"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",

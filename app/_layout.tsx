@@ -11,6 +11,7 @@ import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { colors } from '../src/theme/colors';
 import { useAuthStore } from '../src/stores/authStore';
 import { isDemoMode, isTestMode, getOrCreateTestUser, DEMO_USER as DEMO_PROFILE_DATA, DEMO_DJ } from '../src/lib/demo';
+import { useDeepLinking } from '../src/hooks/useDeepLinking';
 
 // ═══════════════════════════════════════════════════════════
 // 🎯 DEMO MODE — ?demo=true in URL or defaults to true
@@ -56,6 +57,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, initialized, initialize } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+
+  // Deep linking handler
+  useDeepLinking();
 
   useEffect(() => {
     if (isTestMode()) {
