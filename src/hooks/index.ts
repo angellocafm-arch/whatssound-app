@@ -12,3 +12,4 @@ export { useSessions, useProfiles, useSessionStats, type SessionData, type Profi
 export { useBackgroundAudio, type Song as BackgroundAudioSong } from './useBackgroundAudio';
 export { usePayments } from './usePayments';
 export { usePushNotifications, useNotificationBadge } from './usePushNotifications';
+export { useListeningStreak, getStreakEmoji, getStreakLabel } from './useListeningStreak';
