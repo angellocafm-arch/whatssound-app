@@ -1,8 +1,11 @@
 /**
  * WhatsSound — Reset Golden Boosts (Edge Function)
  * 
- * Ejecutar cada domingo a las 00:00 UTC
- * Configura con pg_cron o Supabase scheduled functions
+ * Ejecutar cada VIERNES a las 12:00 CET (antes de comer)
+ * Timing perfecto: la gente sale de fiesta viernes/sábado
+ * 
+ * Configura con pg_cron o Supabase scheduled functions:
+ * SELECT cron.schedule('reset-golden-boosts', '0 11 * * 5', ...); -- 11:00 UTC = 12:00 CET
  * 
  * curl -X POST https://xxx.supabase.co/functions/v1/reset-golden-boosts \
  *   -H "Authorization: Bearer SERVICE_ROLE_KEY"

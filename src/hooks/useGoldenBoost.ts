@@ -253,13 +253,23 @@ export function useGoldenBoost() {
   }, [user]);
 
   /**
-   * Calcular días hasta el próximo reset (domingo)
+   * Calcular días hasta el próximo reset (viernes 12:00)
    */
   const getDaysUntilReset = useCallback((): number => {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 = domingo
-    const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
-    return daysUntilSunday;
+    const dayOfWeek = now.getDay(); // 0 = domingo, 5 = viernes
+    const hour = now.getHours();
+    
+    // Si es viernes antes de las 12, es hoy
+    if (dayOfWeek === 5 && hour < 12) {
+      return 0;
+    }
+    
+    // Calcular días hasta el próximo viernes
+    let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+    if (daysUntilFriday === 0) daysUntilFriday = 7; // Si ya pasó el viernes
+    
+    return daysUntilFriday;
   }, []);
 
   /**

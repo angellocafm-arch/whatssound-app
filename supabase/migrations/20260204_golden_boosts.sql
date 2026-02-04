@@ -141,21 +141,23 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
 -- FUNCIÓN: Reset semanal de Golden Boosts
--- Ejecutar con pg_cron cada domingo a las 00:00
+-- Ejecutar con pg_cron cada VIERNES a las 12:00 (antes de comer)
+-- Timing perfecto: la gente sale de fiesta viernes/sábado
 -- ============================================
 
 CREATE OR REPLACE FUNCTION reset_weekly_golden_boosts()
 RETURNS VOID AS $$
 BEGIN
+  -- Reset si han pasado más de 7 días desde el último reset
   UPDATE ws_profiles
   SET 
     golden_boost_available = 1,
     golden_boost_last_reset = now(),
     sessions_listened_this_week = 0,
     sessions_listened_reset = now()
-  WHERE golden_boost_last_reset < DATE_TRUNC('week', now());
+  WHERE golden_boost_last_reset < (now() - INTERVAL '7 days');
   
-  RAISE NOTICE 'Golden Boosts reseteados para la semana';
+  RAISE NOTICE 'Golden Boosts reseteados - Viernes antes de comer 🎉';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
