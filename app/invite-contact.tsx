@@ -446,7 +446,7 @@ const s = StyleSheet.create({
   },
   generatedContainer: {
     alignItems: 'center',
-    paddingTop: spacing.xxl,
+    paddingTop: spacing['2xl'],
   },
   successIcon: {
     width: 80,

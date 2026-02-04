@@ -22,6 +22,7 @@ import Animated, {
   withDelay,
   interpolate,
   Easing,
+  SharedValue,
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -74,7 +75,7 @@ const slides = [
 ];
 
 // Componente de slide individual
-const Slide = ({ item, index, scrollX }: { item: typeof slides[0]; index: number; scrollX: Animated.SharedValue<number> }) => {
+const Slide = ({ item, index, scrollX }: { item: typeof slides[0]; index: number; scrollX: SharedValue<number> }) => {
   const emojiScale = useSharedValue(1);
   const emojiRotate = useSharedValue(0);
 

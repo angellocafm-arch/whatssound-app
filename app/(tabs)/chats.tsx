@@ -436,7 +436,7 @@ const s = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: spacing.xxl * 3,
+    paddingTop: spacing['2xl'] * 3,
     paddingHorizontal: spacing.base,
   },
   emptyTitle: {

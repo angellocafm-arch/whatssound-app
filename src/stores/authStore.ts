@@ -34,6 +34,8 @@ interface AuthState {
   signOut: () => Promise<void>;
   fetchProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: string | null }>;
+  setUser: (user: User | null) => void;
+  setProfile: (profile: Profile | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -159,4 +161,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     return { error: error?.message ?? null };
   },
+
+  setUser: (user) => set({ user }),
+  setProfile: (profile) => set({ profile }),
 }));

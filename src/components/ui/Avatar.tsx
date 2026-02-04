@@ -8,7 +8,7 @@ import { View, Image, Text, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
-type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;
 
 interface AvatarProps {
   uri?: string;
@@ -40,7 +40,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   size = 'md',
   online,
 }) => {
-  const dimension = sizeMap[size];
+  const dimension = typeof size === 'number' ? size : sizeMap[size];
   const fontSize = dimension * 0.4;
 
   return (
