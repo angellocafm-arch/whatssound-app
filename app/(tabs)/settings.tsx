@@ -19,6 +19,7 @@ import { spacing, borderRadius } from '../../src/theme/spacing';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { useAuthStore } from '../../src/stores/authStore';
 import { StreakCard } from '../../src/components/profile/StreakCard';
+import { BadgeGrid } from '../../src/components/profile/BadgeGrid';
 
 interface SettingItemProps {
   icon: string;
@@ -70,12 +71,18 @@ export default function SettingsScreen() {
         <StreakCard />
       </View>
 
+      {/* Badges */}
+      <View style={styles.streakSection}>
+        <BadgeGrid />
+      </View>
+
       {/* Account */}
       <SectionHeader title="CUENTA" />
       <View style={styles.section}>
         <SettingItem icon="person-outline" title="Perfil de DJ" subtitle="Configura tu perfil como DJ" onPress={() => router.push('/settings/dj-profile')} />
         <SettingItem icon="card-outline" title="Pagos y propinas" subtitle="Métodos de pago, historial" />
         <SettingItem icon="trophy" title="Golden Boosts" subtitle="Tu historial de reconocimientos" onPress={() => router.push('/profile/golden-history')} />
+        <SettingItem icon="gift-outline" title="Invitar amigos" subtitle="Comparte tu código y gana" onPress={() => router.push('/invite')} />
         <SettingItem icon="notifications-outline" title="Notificaciones" subtitle="Sesiones, propinas, menciones" onPress={() => router.push('/settings/notifications')} />
         <SettingItem icon="lock-closed-outline" title="Privacidad" subtitle="Quién puede verte" onPress={() => router.push('/settings/privacy')} />
       </View>

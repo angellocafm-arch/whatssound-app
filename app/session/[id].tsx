@@ -21,7 +21,9 @@ import { FloatingReactionsContainer, sendReaction } from '../../src/components/s
 import { GoldenBoostButton } from '../../src/components/session/GoldenBoostButton';
 import { GoldenBoostAnimation } from '../../src/components/session/GoldenBoostAnimation';
 import { useGoldenBoostNotifications } from '../../src/hooks/useGoldenBoostRealtime';
+import { useAudioSync } from '../../src/hooks';
 import { TipModal } from '../../src/components/TipModal';
+import { useAuthStore } from '../../src/stores/authStore';
 // AudioPreview temporarily disabled — will re-enable after fixing
 // import AudioPreview from '../../src/components/AudioPreview';
 
@@ -151,6 +153,27 @@ export default function SessionScreen() {
   // Golden Boost realtime notifications
   const { showAnimation: showGoldenBoost, currentBoost, hideAnimation: hideGoldenBoost } = 
     useGoldenBoostNotifications(id as string || '');
+
+  // Audio sync between DJ and listeners
+  const { user } = useAuthStore();
+  const isDJ = sessionData?.dj_id === user?.id;
+  const nowPlaying = sessionData?.songs?.find((s: any) => s.status === 'playing') || NOW;
+  const currentTimeMs = progress * (nowPlaying.duration || NOW.duration) * 1000;
+  
+  const { isSynced, isSyncing } = useAudioSync({
+    sessionId: id as string || '',
+    isDJ,
+    songId: nowPlaying.id || 'demo',
+    currentTimeMs,
+    isPlaying: playing,
+    onSeekTo: (timeMs) => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = timeMs / 1000;
+        setProgress(timeMs / 1000 / (nowPlaying.duration || NOW.duration));
+      }
+    },
+    enabled: !!(id && !id.startsWith('mock-')),
+  });
 
   // Load from Supabase if real UUID
   useEffect(() => {
@@ -297,6 +320,8 @@ export default function SessionScreen() {
         <Text style={s.hSub}>{activeSession.genre || activeSession.genres?.join(", ") || "Mix"} · <Text style={{color:colors.primary}}>{activeSession.listeners || activePeople.length} oyentes</Text></Text>
       </View>
       <View style={s.liveBadge}><View style={s.liveRedDot}/><Text style={s.liveText}>EN VIVO</Text></View>
+      {!isDJ && isSynced && <View style={s.syncBadge}><Text style={s.syncText}>✓ Sync</Text></View>}
+      {!isDJ && isSyncing && <View style={s.syncingBadge}><Text style={s.syncingText}>⟳</Text></View>}
     </View>
   );
 
@@ -560,6 +585,10 @@ const s = StyleSheet.create({
   liveBadge: { flexDirection:'row', alignItems:'center', backgroundColor:'#EF535020', paddingHorizontal:spacing.sm, paddingVertical:spacing.xs, borderRadius:borderRadius.full, gap:4 },
   liveRedDot: { width:6, height:6, borderRadius:3, backgroundColor:colors.error },
   liveText: { ...typography.captionBold, color:colors.error, fontSize:10 },
+  syncBadge: { backgroundColor:'#22c55e20', paddingHorizontal:spacing.sm, paddingVertical:spacing.xs, borderRadius:borderRadius.full, marginLeft:4 },
+  syncText: { ...typography.captionBold, color:'#22c55e', fontSize:10 },
+  syncingBadge: { backgroundColor:colors.primary+'20', paddingHorizontal:spacing.sm, paddingVertical:spacing.xs, borderRadius:borderRadius.full, marginLeft:4 },
+  syncingText: { ...typography.captionBold, color:colors.primary, fontSize:10 },
 
   // Tab Bar
   tabBar: { flexDirection:'row', backgroundColor:colors.surface, borderTopWidth:.5, borderTopColor:colors.border, paddingBottom:Platform.OS==='ios'?spacing.lg:spacing.sm, paddingTop:spacing.sm },
