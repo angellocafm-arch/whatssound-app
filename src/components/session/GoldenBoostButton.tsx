@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import GoldenBoostAnimation from './GoldenBoostAnimation';
 
 interface GoldenBoostButtonProps {
@@ -50,7 +50,7 @@ export function GoldenBoostButton({
   size = 'medium',
   iconOnly = false,
 }: GoldenBoostButtonProps) {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [available, setAvailable] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);

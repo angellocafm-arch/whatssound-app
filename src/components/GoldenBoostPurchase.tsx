@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../stores/authStore';
 
 interface GoldenBoostPurchaseProps {
   visible: boolean;
@@ -73,7 +73,7 @@ export function GoldenBoostPurchase({
   onClose,
   onPurchaseComplete,
 }: GoldenBoostPurchaseProps) {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 

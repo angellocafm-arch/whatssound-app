@@ -11,6 +11,6 @@ export { PresenceBar } from './PresenceBar';
 export { SessionPulse } from './SessionPulse';
 export { ShareButton } from './ShareButton';
 export { SongQueue } from './SongQueue';
-export { SongRequest } from './SongRequest';
+export { default as SongRequest } from './SongRequest';
 export { TipButton } from './TipButton';
-export { TipNotification } from './TipNotification';
+export { default as TipNotification } from './TipNotification';

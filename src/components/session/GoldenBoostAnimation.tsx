@@ -71,7 +71,7 @@ function ConfettiPiece({ delay, startX }: { delay: number; startX: number }) {
         Animated.timing(translateX, {
           toValue: startX + drift,
           duration: 3000 + Math.random() * 2000,
-          easing: Easing.inOut(Easing.sine),
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(rotate, {
