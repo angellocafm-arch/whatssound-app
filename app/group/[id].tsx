@@ -58,6 +58,95 @@ function getSenderColor(userId: string): string {
   return SENDER_COLORS[Math.abs(hash) % SENDER_COLORS.length];
 }
 
+// Mock data para demo - Conversación grupal tipo WhatsApp
+const MOCK_GROUP_MESSAGES: ChatMessage[] = [
+  {
+    id: 'sys-1',
+    content: 'María García creó el grupo "Amigos Madrid 🎉"',
+    user_id: '',
+    is_system: true,
+    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    display_name: '',
+  },
+  {
+    id: 'msg-1',
+    content: '¡Hola a todos! Bienvenidos al grupo 👋',
+    user_id: 'maria-1',
+    is_system: false,
+    created_at: new Date(Date.now() - 1.9 * 60 * 60 * 1000).toISOString(),
+    display_name: 'María García',
+  },
+  {
+    id: 'msg-2',
+    content: 'Gracias por la invitación María! 🙌',
+    user_id: 'carlos-2',
+    is_system: false,
+    created_at: new Date(Date.now() - 1.8 * 60 * 60 * 1000).toISOString(),
+    display_name: 'Carlos López',
+  },
+  {
+    id: 'msg-3',
+    content: 'Hola!! Qué buena idea crear este grupo',
+    user_id: 'ana-3',
+    is_system: false,
+    created_at: new Date(Date.now() - 1.7 * 60 * 60 * 1000).toISOString(),
+    display_name: 'Ana Martín',
+  },
+  {
+    id: 'msg-4',
+    content: 'Oye, ¿quedamos este finde para la sesión de DJ Carlos?',
+    user_id: 'maria-1',
+    is_system: false,
+    created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+    display_name: 'María García',
+  },
+  {
+    id: 'msg-5',
+    content: 'Por mí perfecto, el sábado estoy libre 🎧',
+    user_id: 'carlos-2',
+    is_system: false,
+    created_at: new Date(Date.now() - 55 * 60 * 1000).toISOString(),
+    display_name: 'Carlos López',
+  },
+  {
+    id: 'msg-6',
+    content: 'Yo también puedo el sábado! A qué hora?',
+    user_id: 'ana-3',
+    is_system: false,
+    created_at: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+    display_name: 'Ana Martín',
+  },
+  {
+    id: 'msg-7',
+    content: 'La sesión empieza a las 22:00, pero podemos quedar antes para cenar 🍕',
+    user_id: 'maria-1',
+    is_system: false,
+    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    display_name: 'María García',
+  },
+  {
+    id: 'msg-8',
+    content: 'Genial! Os paso la ubicación luego',
+    user_id: 'carlos-2',
+    is_system: false,
+    created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    display_name: 'Carlos López',
+  },
+  {
+    id: 'msg-9',
+    content: '¡Perfecto! Nos vemos el sábado entonces 🔥',
+    user_id: 'ana-3',
+    is_system: false,
+    created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    display_name: 'Ana Martín',
+  },
+];
+
+const MOCK_GROUP_INFO = {
+  name: 'Amigos Madrid 🎉',
+  memberCount: 3,
+};
+
 interface ChatMessage {
   id: string;
   content: string;
@@ -122,6 +211,18 @@ export default function GroupChatScreen() {
 
   const fetchMessages = useCallback(async () => {
     if (!id) return;
+    
+    // Modo demo: usar mensajes mock
+    const isDemo = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || 
+       window.location.hostname.includes('vercel.app') ||
+       localStorage.getItem('demo_mode') === 'true');
+    
+    if (isDemo) {
+      setMessages(MOCK_GROUP_MESSAGES);
+      return;
+    }
+    
     try {
       const headers = getHeaders();
       const res = await fetch(`${SB}/chat_messages?chat_id=eq.${id}&order=created_at.asc&select=id,content,user_id,is_system,created_at`, { headers });
@@ -137,11 +238,26 @@ export default function GroupChatScreen() {
       setMessages(enriched);
     } catch (e) {
       console.error('Error fetching messages:', e);
+      // Fallback a mock en caso de error
+      setMessages(MOCK_GROUP_MESSAGES);
     }
   }, [id]);
 
   const fetchGroupInfo = useCallback(async () => {
     if (!id) return;
+    
+    // Modo demo: usar info mock
+    const isDemo = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || 
+       window.location.hostname.includes('vercel.app') ||
+       localStorage.getItem('demo_mode') === 'true');
+    
+    if (isDemo) {
+      setGroupName(MOCK_GROUP_INFO.name);
+      setMemberCount(MOCK_GROUP_INFO.memberCount);
+      return;
+    }
+    
     try {
       const headers = getHeaders();
       // Group name
@@ -156,6 +272,9 @@ export default function GroupChatScreen() {
       setMemberCount(count);
     } catch (e) {
       console.error('Error fetching group info:', e);
+      // Fallback a mock
+      setGroupName(MOCK_GROUP_INFO.name);
+      setMemberCount(MOCK_GROUP_INFO.memberCount);
     }
   }, [id]);
 
