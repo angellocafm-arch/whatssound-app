@@ -16,6 +16,7 @@ import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { supabase } from '../../src/lib/supabase';
+import { PresenceBar } from '../../src/components/session/PresenceBar';
 // AudioPreview temporarily disabled — will re-enable after fixing
 // import AudioPreview from '../../src/components/AudioPreview';
 
@@ -474,6 +475,7 @@ export default function SessionScreen() {
   return (
     <SafeAreaView style={s.container}>
       <Header />
+      <PresenceBar sessionId={id as string} />
       <View style={{flex:1}}>
         {tab === 'player' && <Player />}
         {tab === 'chat' && <Chat />}
