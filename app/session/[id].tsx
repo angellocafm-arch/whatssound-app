@@ -21,6 +21,7 @@ import { FloatingReactionsContainer, sendReaction } from '../../src/components/s
 import { GoldenBoostButton } from '../../src/components/session/GoldenBoostButton';
 import { GoldenBoostAnimation } from '../../src/components/session/GoldenBoostAnimation';
 import { useGoldenBoostNotifications } from '../../src/hooks/useGoldenBoostRealtime';
+import { TipModal } from '../../src/components/TipModal';
 // AudioPreview temporarily disabled — will re-enable after fixing
 // import AudioPreview from '../../src/components/AudioPreview';
 
@@ -143,6 +144,7 @@ export default function SessionScreen() {
   const [dbQueue, setDbQueue] = useState<any[]>([]);
   const [dbChat, setDbChat] = useState<ChatMsg[]>([]);
   const [dbPeople, setDbPeople] = useState<any[]>([]);
+  const [showTipModal, setShowTipModal] = useState(false);
   const listRef = useRef<FlatList>(null);
   const pulse = useRef(new Animated.Value(1)).current;
   
@@ -353,8 +355,16 @@ export default function SessionScreen() {
           </TouchableOpacity>
         ))}
       </View>
-      {/* Golden Boost */}
-      <View style={{marginTop: spacing.xl, alignItems: 'center'}}>
+      {/* Action Buttons: Tip + Golden Boost */}
+      <View style={{marginTop: spacing.xl, flexDirection: 'row', justifyContent: 'center', gap: spacing.md}}>
+        <TouchableOpacity 
+          style={s.tipButton}
+          onPress={() => setShowTipModal(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={{fontSize: 24}}>💸</Text>
+          <Text style={s.tipButtonText}>Propina</Text>
+        </TouchableOpacity>
         <GoldenBoostButton
           djId={activeSession.dj_id || 'mock-dj'}
           djName={activeSession.djName || activeSession.dj?.dj_name || 'DJ Carlos'}
@@ -362,6 +372,16 @@ export default function SessionScreen() {
           size="large"
         />
       </View>
+
+      {/* Tip Modal */}
+      <TipModal
+        visible={showTipModal}
+        onClose={() => setShowTipModal(false)}
+        djId={activeSession.dj_id || 'mock-dj'}
+        djName={activeSession.djName || activeSession.dj?.dj_name || 'DJ Carlos'}
+        djAvatar={activeSession.dj?.avatar_url}
+        sessionId={id as string}
+      />
       {/* Up Next */}
       <View style={s.upNext}>
         <Text style={s.upNextLabel}>A continuación</Text>
@@ -570,6 +590,8 @@ const s = StyleSheet.create({
   reactLabel: { ...typography.captionBold, color:colors.textMuted, marginTop:spacing['2xl'], letterSpacing:1 },
   reactRow: { flexDirection:'row', gap:spacing.md, marginTop:spacing.sm },
   reactBtn: { width:52, height:52, borderRadius:26, backgroundColor:colors.surface, justifyContent:'center', alignItems:'center', borderWidth:1, borderColor:colors.border },
+  tipButton: { flexDirection:'column', alignItems:'center', justifyContent:'center', backgroundColor:'#4CAF50', paddingHorizontal:spacing.lg, paddingVertical:spacing.md, borderRadius:borderRadius.lg, gap:4 },
+  tipButtonText: { ...typography.buttonSmall, color:'#FFF' },
   upNext: { width:'90%', marginTop:spacing['2xl'], backgroundColor:colors.surface, borderRadius:borderRadius.lg, padding:spacing.md },
   upNextLabel: { ...typography.captionBold, color:colors.textMuted, letterSpacing:.5, marginBottom:spacing.sm },
   upNextItem: { flexDirection:'row', alignItems:'center', gap:spacing.sm, paddingVertical:spacing.sm, borderBottomWidth:.5, borderBottomColor:colors.divider },
