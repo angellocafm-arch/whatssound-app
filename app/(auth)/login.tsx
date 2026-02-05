@@ -8,7 +8,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   KeyboardAvoidingView,
   Platform,
   TextInput,
@@ -133,14 +133,14 @@ export default function LoginScreen() {
 
         {/* Phone input */}
         <View style={styles.phoneRow}>
-          <TouchableOpacity 
+          <Pressable 
             style={styles.countryBtn}
             onPress={() => setShowCountryPicker(!showCountryPicker)}
           >
             <Text style={styles.countryFlag}>{countryCode.flag}</Text>
             <Text style={styles.countryCode}>{countryCode.code}</Text>
             <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
-          </TouchableOpacity>
+          </Pressable>
 
           <TextInput
             style={styles.phoneInput}
@@ -157,7 +157,7 @@ export default function LoginScreen() {
         {showCountryPicker && (
           <View style={styles.countryPicker}>
             {COUNTRY_CODES.map((c) => (
-              <TouchableOpacity
+              <Pressable
                 key={c.code}
                 style={styles.countryOption}
                 onPress={() => {
@@ -168,7 +168,7 @@ export default function LoginScreen() {
                 <Text style={styles.countryFlag}>{c.flag}</Text>
                 <Text style={styles.countryOptionText}>{c.country}</Text>
                 <Text style={styles.countryOptionCode}>{c.code}</Text>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         )}

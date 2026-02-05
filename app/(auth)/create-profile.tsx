@@ -9,7 +9,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   Platform,
 } from 'react-native';
@@ -174,9 +174,9 @@ export default function CreateProfileScreen() {
       keyboardShouldPersistTaps="handled"
     >
       {/* Back button */}
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+      <Pressable style={styles.backBtn} onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-      </TouchableOpacity>
+      </Pressable>
 
       <Text style={styles.title}>Crea tu perfil</Text>
       <Text style={styles.subtitle}>
@@ -192,12 +192,12 @@ export default function CreateProfileScreen() {
       ) : null}
 
       {/* Avatar picker */}
-      <TouchableOpacity style={styles.avatarPicker}>
+      <Pressable style={styles.avatarPicker}>
         <View style={styles.avatarCircle}>
           <Ionicons name="camera" size={32} color={colors.textMuted} />
         </View>
         <Text style={styles.avatarLabel}>Añadir foto</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Form */}
       <Input
@@ -225,7 +225,7 @@ export default function CreateProfileScreen() {
         {GENRES.map((genre) => {
           const isSelected = selectedGenres.includes(genre);
           return (
-            <TouchableOpacity 
+            <Pressable 
               key={genre} 
               style={[styles.chip, isSelected && styles.chipSelected]}
               onPress={() => toggleGenre(genre)}
@@ -233,7 +233,7 @@ export default function CreateProfileScreen() {
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                 {genre}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>

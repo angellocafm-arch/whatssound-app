@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
@@ -33,7 +33,7 @@ export default function PermissionsScreen() {
 
       <View style={s.permsList}>
         {PERMISSIONS.map((p, i) => (
-          <TouchableOpacity key={i} style={s.permRow}>
+          <Pressable key={i} style={s.permRow}>
             <View style={s.permIcon}>
               <Ionicons name={p.icon} size={24} color={colors.primary} />
             </View>
@@ -41,22 +41,22 @@ export default function PermissionsScreen() {
               <Text style={s.permTitle}>{p.title}</Text>
               <Text style={s.permDesc}>{p.desc}</Text>
             </View>
-            <TouchableOpacity style={[s.permBtn, p.enabled && s.permBtnActive]}>
+            <Pressable style={[s.permBtn, p.enabled && s.permBtnActive]}>
               <Text style={[s.permBtnText, p.enabled && s.permBtnTextActive]}>
                 {p.enabled ? 'Activado' : 'Activar'}
               </Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
+            </Pressable>
+          </Pressable>
         ))}
       </View>
 
       <View style={s.bottom}>
-        <TouchableOpacity style={s.continueBtn} onPress={() => router.replace('/(tabs)' as any)}>
+        <Pressable style={s.continueBtn} onPress={() => router.replace('/(tabs)' as any)}>
           <Text style={s.continueText}>Empezar a usar WhatsSound 🎧</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.replace('/(tabs)' as any)}>
+        </Pressable>
+        <Pressable onPress={() => router.replace('/(tabs)' as any)}>
           <Text style={s.skipText}>Saltar por ahora</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
