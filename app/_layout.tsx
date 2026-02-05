@@ -19,6 +19,7 @@ import { isDemoMode, DEMO_USER, DEMO_DJ, getNeedsProfile } from '../src/lib/demo
 import { useDeepLinking } from '../src/hooks/useDeepLinking';
 import { DebugOverlay } from '../src/components/ui/DebugOverlay';
 import debugLog from '../src/lib/debugToast';
+import { initSentry, captureError } from '../src/lib/sentry';
 
 // ═══════════════════════════════════════════════════════════
 // 🎯 MODOS:
@@ -70,6 +71,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useDeepLinking();
 
   useEffect(() => {
+    // Inicializar Sentry para monitoreo de errores
+    initSentry();
+    
     if (isDemoMode()) {
       // MODO INVERSORES: bypass auth, usuario demo
       useAuthStore.setState({

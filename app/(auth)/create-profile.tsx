@@ -24,6 +24,7 @@ import { supabase } from '../../src/lib/supabase';
 import { isDemoMode, clearNeedsProfile, getPendingPhone } from '../../src/lib/demo';
 import { useAuthStore } from '../../src/stores/authStore';
 import debugLog from '../../src/lib/debugToast';
+import { captureError } from '../../src/lib/sentry';
 
 const GENRES = [
   'Reggaeton', 'Pop', 'Rock', 'Techno', 'Lo-Fi', 
@@ -119,6 +120,13 @@ export default function CreateProfileScreen() {
 
       if (profileError) {
         debugLog.error('CreateProfile', 'Error de Supabase', profileError);
+        // Enviar a Sentry para monitoreo
+        captureError(new Error(`Supabase Error: ${profileError.message}`), {
+          code: profileError.code,
+          details: profileError.details,
+          hint: profileError.hint,
+          userId: odUserId,
+        });
         setError(`Error: ${profileError.message}`);
         setLoading(false);
         return;
