@@ -4,7 +4,7 @@
  * Usa fetch directo para máxima compatibilidad con Expo Web
  */
 
-const SENTRY_DSN = 'https://874b2ccb9989bbacce4844c41125ae70@o4510811080228864.ingest.de.sentry.io/4510835161170000';
+const SENTRY_DSN = 'https://d37e8a7a9a6365d99b5f8dbd24d6d944@o4510835416301568.ingest.de.sentry.io/4510835480002640';
 
 // Parsear DSN
 const DSN_REGEX = /^https:\/\/([^@]+)@([^/]+)\/(\d+)$/;
