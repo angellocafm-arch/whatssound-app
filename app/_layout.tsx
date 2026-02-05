@@ -77,6 +77,24 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     // Inicializar PostHog para analytics
     initPostHog();
     
+    // Verificar si la URL tiene ?demo=false ANTES de establecer modo demo
+    if (Platform.OS === 'web') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('demo') === 'false') {
+          // Usuario quiere modo pruebas, no establecer perfil demo
+          useAuthStore.setState({
+            user: null,
+            session: null,
+            profile: null,
+            initialized: true,
+            loading: false,
+          });
+          return;
+        }
+      } catch {}
+    }
+    
     if (isDemoMode()) {
       // MODO INVERSORES: bypass auth, usuario demo
       useAuthStore.setState({
