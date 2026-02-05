@@ -6,9 +6,14 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Hardcoded porque Vercel no lee .env de Expo correctamente
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() || 'https://xyehncvvvprrqwnsefcr.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+// Hardcoded - NO usar variables de entorno, Vercel no las procesa bien con Expo
+const supabaseUrl = 'https://xyehncvvvprrqwnsefcr.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+
+// Log para debug
+if (typeof console !== 'undefined') {
+  console.log('[Supabase] URL:', supabaseUrl);
+}
 
 // Use localStorage on web, AsyncStorage on native
 const storage = Platform.OS === 'web'
