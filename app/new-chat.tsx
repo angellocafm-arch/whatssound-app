@@ -60,7 +60,7 @@ export default function NewChatScreen() {
       );
       const data = await res.json();
       if (Array.isArray(data)) {
-        setUsers(data.filter((u: any) => u.id !== currentUserId));
+        setUsers(data.filter((u: { id: string }) => u.id !== currentUserId));
       }
     } catch (e) {
       console.error('Error loading users:', e);
@@ -82,7 +82,7 @@ export default function NewChatScreen() {
       const myMembers = await myMembersRes.json();
 
       if (Array.isArray(myMembers) && myMembers.length > 0) {
-        const myChatIds = myMembers.map((m: any) => m.chat_id);
+        const myChatIds = myMembers.map((m: { chat_id: string }) => m.chat_id);
 
         // Check if target user is also a member of any of my chats
         const targetMembersRes = await fetch(
@@ -93,7 +93,7 @@ export default function NewChatScreen() {
 
         if (Array.isArray(targetMembers) && targetMembers.length > 0) {
           // Check if any of these shared chats is a 'direct' type
-          const sharedChatIds = targetMembers.map((m: any) => m.chat_id);
+          const sharedChatIds = targetMembers.map((m: { chat_id: string }) => m.chat_id);
           const chatsRes = await fetch(
             `${SUPABASE_URL}/rest/v1/chats?id=in.(${sharedChatIds.join(',')})&type=eq.direct&select=id&limit=1`,
             { headers: getHeaders() }

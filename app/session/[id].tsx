@@ -158,7 +158,7 @@ export default function SessionScreen() {
   // Audio sync between DJ and listeners
   const { user: authUser } = useAuthStore();
   const isDJ = sessionData?.dj_id === authUser?.id;
-  const syncSong = sessionData?.songs?.find((s: any) => s.status === 'playing') || NOW;
+  const syncSong = sessionData?.songs?.find((s: { status: string }) => s.status === 'playing') || NOW;
   const currentTimeMs = progress * (syncSong.duration || NOW.duration) * 1000;
   
   const { isSynced, isSyncing } = useAudioSync({
@@ -217,7 +217,7 @@ export default function SessionScreen() {
           .from('ws_messages').select('*, author:ws_profiles!author_id(display_name)')
           .eq('session_id', id).order('created_at', { ascending: true }).limit(50);
         if (chatMsgs) {
-          setDbChat(chatMsgs.map((m: any) => ({
+          setDbChat(chatMsgs.map((m: { id: string; sender_id: string; content: string; created_at: string; sender?: { display_name?: string } }) => ({
             id: m.id, user: m.author?.display_name || 'Anónimo',
             text: m.content, time: new Date(m.created_at).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}),
             isMine: false, role: m.type === 'dj_announce' ? 'dj' as const : undefined,
@@ -229,7 +229,7 @@ export default function SessionScreen() {
           .from('ws_session_members').select('*, profile:ws_profiles!user_id(display_name)')
           .eq('session_id', id).is('left_at', null);
         if (members) {
-          setDbPeople(members.map((m: any) => ({
+          setDbPeople(members.map((m: { id: string; sender_id: string; content: string; created_at: string; sender?: { display_name?: string } }) => ({
             id: m.id, name: m.profile?.display_name || 'Anónimo',
             role: m.role === 'dj' ? 'dj' : m.role === 'vip' ? 'vip' : m.role === 'moderator' ? 'mod' : undefined,
             on: true,
@@ -241,7 +241,7 @@ export default function SessionScreen() {
 
   // Use DB data if available
   const activeSession = sessionData || SESSION;
-  const activeQueue = dbQueue.length > 0 ? dbQueue.map((s: any) => ({
+  const activeQueue = dbQueue.length > 0 ? dbQueue.map((s: { id: string; title: string; artist: string; album_art?: string; votes?: number }) => ({
     id: s.id, 
     title: s.title, 
     artist: s.artist, 
@@ -254,7 +254,7 @@ export default function SessionScreen() {
   })) : QUEUE;
   const activeChat = dbChat.length > 0 ? dbChat : msgs;
   const activePeople = dbPeople.length > 0 ? dbPeople : PEOPLE;
-  const activeNow = dbQueue.find((s: any) => s.status === 'playing');
+  const activeNow = dbQueue.find((s: { status: string }) => s.status === 'playing');
   const nowPlaying = activeNow ? {
     title: activeNow.title, 
     artist: activeNow.artist, 

@@ -165,7 +165,7 @@ export default function CreateProfileScreen() {
 
       // Ir a permisos
       router.replace('/(auth)/permissions');
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError('Error inesperado. Inténtalo de nuevo.');
     }
 

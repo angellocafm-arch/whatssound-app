@@ -11,7 +11,7 @@ import {
   getAuthData 
 } from '../utils/supabase-config';
 
-function getLocalUser(): { user: any; accessToken: string } | null {
+function getLocalUser(): { user: { id: string; email?: string }; accessToken: string } | null {
   const auth = getAuthData();
   if (auth?.user && auth?.access_token) {
     return { user: auth.user, accessToken: auth.access_token };
@@ -19,7 +19,7 @@ function getLocalUser(): { user: any; accessToken: string } | null {
   return null;
 }
 
-async function supabaseRestPost(table: string, body: any, accessToken: string): Promise<{ data: any; error: any }> {
+async function supabaseRestPost(table: string, body: Record<string, unknown>, accessToken: string): Promise<{ data: unknown; error: unknown }> {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
       method: 'POST',
@@ -34,7 +34,7 @@ async function supabaseRestPost(table: string, body: any, accessToken: string): 
     const data = await res.json();
     if (!res.ok) return { data: null, error: { message: data.message || JSON.stringify(data) } };
     return { data: Array.isArray(data) ? data[0] : data, error: null };
-  } catch (e: any) {
+  } catch (e: unknown) {
     return { data: null, error: { message: e.message } };
   }
 }
@@ -101,7 +101,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       const res = await fetch(url, { headers });
       if (res.ok) {
         const data = await res.json();
-        const sessions = data.map((s: any) => ({
+        const sessions = data.map((s: { id: string; name: string; is_active: boolean; dj?: { dj_name?: string }; songs?: { status: string }[] }) => ({
           ...s,
           dj_display_name: s.profiles?.display_name,
           dj_name: s.profiles?.username,
@@ -185,7 +185,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       const res = await fetch(url, { headers });
       if (res.ok) {
         const data = await res.json();
-        const queue = data.map((q: any) => ({
+        const queue = data.map((q: { id: string; title: string; artist: string; album_art?: string; votes?: number; status?: string; requested_by?: string }) => ({
           ...q,
           requester_name: q.profiles?.display_name,
         }));

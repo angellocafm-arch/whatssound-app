@@ -52,7 +52,7 @@ export default function UsersPage() {
         .limit(100);
 
       if (!error && data) {
-        const enriched = await Promise.all(data.map(async (user: any) => {
+        const enriched = await Promise.all(data.map(async (user: { id: string; display_name: string; is_dj: boolean; created_at?: string }) => {
           // Contar sesiones donde participó
           const { count: sessionCount } = await supabase
             .from('ws_session_members')
@@ -70,7 +70,7 @@ export default function UsersPage() {
             .from('ws_tips')
             .select('amount')
             .eq('from_user_id', user.id);
-          const tipTotal = tips?.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || 0;
+          const tipTotal = tips?.reduce((sum: number, t: { amount?: number }) => sum + (t.amount || 0), 0) || 0;
 
           // Determinar rol
           let role = 'user';

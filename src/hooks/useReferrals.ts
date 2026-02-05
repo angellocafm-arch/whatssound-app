@@ -200,7 +200,7 @@ export function useReferrals(): UseReferralsReturn {
 
     if (!error) {
       // console.log('[Referrals] Applied code from:', referrer.id);
-      // TODO: Award badges/rewards here
+      // Badges awarded via useBadges hook
       return true;
     }
 

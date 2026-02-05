@@ -108,7 +108,7 @@ export function GoldenBoostPurchase({
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[GoldenBoostPurchase] Error:', error);
       Alert.alert('Error', 'No se pudo procesar la compra. Inténtalo de nuevo.');
     } finally {

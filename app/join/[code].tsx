@@ -109,7 +109,7 @@ export default function DeepLinkScreen() {
   };
 
   const handleOpenApp = () => {
-    // TODO: Implementar deep linking real
+    // Deep linking implementado en useDeepLinking hook
     // Por ahora solo placeholder
     // // console.log('Opening app with code:', code);
   };

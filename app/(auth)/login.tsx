@@ -123,7 +123,7 @@ export default function LoginScreen() {
       }
 
       router.push('/(auth)/otp');
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError('Error al enviar el código. Inténtalo de nuevo.');
     }
     

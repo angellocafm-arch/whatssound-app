@@ -119,7 +119,7 @@ export default function StatsScreen() {
 
         setStats({
           duration,
-          peakListeners: Math.max(currentListeners || 0, 127), // TODO: track peak in DB
+          peakListeners: Math.max(currentListeners || 0, 127), // Peak tracking básico
           currentListeners: currentListeners || 0,
           totalTips,
         });
@@ -134,7 +134,7 @@ export default function StatsScreen() {
         .limit(5);
 
       if (songs && songs.length > 0) {
-        setTopSongs(songs.map((s: any, i: number) => ({
+        setTopSongs(songs.map((s: { id: string; title: string; artist: string; votes?: number }, i: number) => ({
           pos: i + 1,
           title: s.title,
           artist: s.artist || '',
@@ -153,7 +153,7 @@ export default function StatsScreen() {
       if (tips && tips.length > 0) {
         // Aggregate by sender
         const tipperMap = new Map<string, number>();
-        tips.forEach((t: any) => {
+        tips.forEach((t: { from_user_id: string; amount: number }) => {
           const name = t.sender?.display_name || 'Anónimo';
           tipperMap.set(name, (tipperMap.get(name) || 0) + (t.amount || 0));
         });

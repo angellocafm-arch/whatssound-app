@@ -65,7 +65,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 }),
                 new Promise(r => setTimeout(r, 3000)),
               ]);
-              setSessionWithTimeout.then((result: any) => {
+              setSessionWithTimeout.then((result: { data?: { session?: unknown } }) => {
                 if (result?.data?.session) {
                   set({ user: result.data.session.user, session: result.data.session });
                 }

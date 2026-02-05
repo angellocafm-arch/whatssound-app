@@ -163,7 +163,7 @@ export default function GroupChatScreen() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const profileCache = useRef<Record<string, string>>({});
 
-  const fetchProfileName = async (userId: string, headers: any): Promise<string> => {
+  const fetchProfileName = async (userId: string, headers: Record<string, string>): Promise<string> => {
     if (profileCache.current[userId]) return profileCache.current[userId];
     try {
       const res = await fetch(`${SB}/profiles?id=eq.${userId}&select=display_name`, { headers });
@@ -191,7 +191,7 @@ export default function GroupChatScreen() {
       if (!Array.isArray(data)) return;
 
       // Resolve display names
-      const enriched: ChatMessage[] = await Promise.all(data.map(async (msg: any) => {
+      const enriched: ChatMessage[] = await Promise.all(data.map(async (msg: { id: string; sender_id: string; content: string; created_at: string }) => {
         const display_name = msg.user_id ? await fetchProfileName(msg.user_id, headers) : '';
         return { ...msg, display_name };
       }));

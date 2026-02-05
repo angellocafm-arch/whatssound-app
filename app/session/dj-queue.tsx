@@ -184,7 +184,7 @@ export default function DJQueueScreen() {
         .order('votes', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        setQueue(data.map((s: any) => ({
+        setQueue(data.map((s: { id: string; title: string; artist: string; votes?: number; status?: string; requested_by?: string }) => ({
           id: s.id,
           title: s.title,
           artist: s.artist,

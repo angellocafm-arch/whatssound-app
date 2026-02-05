@@ -42,7 +42,7 @@ export function useRealtimeChat(sessionId: string, userId?: string) {
         .limit(100);
 
       if (data) {
-        setMessages(data.map((m: any) => ({
+        setMessages(data.map((m: { id: string; content: string; sender_id: string; created_at: string; sender?: { display_name?: string } }) => ({
           id: m.id,
           user: m.author?.display_name || 'Anónimo',
           text: m.content,

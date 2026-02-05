@@ -117,7 +117,7 @@ export async function getReactionCounts(
     counts.set(emoji, { count: 0, userReacted: false });
   });
 
-  reactions.forEach((r: any) => {
+  reactions.forEach((r: { emoji: string }) => {
     const current = counts.get(r.emoji) || { count: 0, userReacted: false };
     counts.set(r.emoji, {
       count: current.count + 1,
@@ -179,7 +179,7 @@ export async function getRecentReactions(
 
   if (error || !data) return [];
 
-  return data.map((r: any) => ({
+  return data.map((r: { id: string; emoji: string; user_id: string; created_at: string }) => ({
     emoji: r.emoji,
     userName: r.user?.display_name || 'Usuario',
   }));

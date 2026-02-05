@@ -47,7 +47,7 @@ export default function HealthScreen() {
       const { data, error } = await supabase.from('ws_profiles').select('id').limit(1);
       if (error) throw error;
       updateCheck(0, { status: 'ok', detail: `Conectado (${Date.now() - t}ms)`, ms: Date.now() - t });
-    } catch (e: any) {
+    } catch (e: unknown) {
       updateCheck(0, { status: 'error', detail: e.message || 'Sin conexión', ms: Date.now() - t });
     }
 
@@ -66,7 +66,7 @@ export default function HealthScreen() {
         detail: results.join(' · '),
         ms: Date.now() - t 
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       updateCheck(1, { status: 'error', detail: e.message, ms: Date.now() - t });
     }
 
@@ -80,7 +80,7 @@ export default function HealthScreen() {
         detail: `${count || 0} perfiles semilla${ok ? '' : ' (esperados ≥10)'}`,
         ms: Date.now() - t 
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       updateCheck(2, { status: 'error', detail: e.message, ms: Date.now() - t });
     }
 
@@ -94,7 +94,7 @@ export default function HealthScreen() {
       } else {
         updateCheck(3, { status: 'error', detail: 'Sin resultados', ms: Date.now() - t });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       updateCheck(3, { status: 'error', detail: e.message, ms: Date.now() - t });
     }
 
@@ -112,7 +112,7 @@ export default function HealthScreen() {
         });
       });
       updateCheck(4, { status: 'ok', detail: `Realtime conectado (${Date.now() - t}ms)`, ms: Date.now() - t });
-    } catch (e: any) {
+    } catch (e: unknown) {
       updateCheck(4, { status: 'error', detail: e.message, ms: Date.now() - t });
     }
 
@@ -132,7 +132,7 @@ export default function HealthScreen() {
       } else {
         updateCheck(5, { status: 'error', detail: 'No se encontró preview URL', ms: Date.now() - t });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       updateCheck(5, { status: 'error', detail: e.message, ms: Date.now() - t });
     }
 

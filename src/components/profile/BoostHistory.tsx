@@ -63,7 +63,7 @@ export function BoostHistory({ userId, mode = 'all', limit = 20 }: BoostHistoryP
         .limit(limit);
 
       setRecords(
-        (data || []).map((b: any) => ({
+        (data || []).map((b: { id: string; from_user?: { display_name?: string }; to_user?: { display_name?: string }; created_at: string }) => ({
           id: b.id,
           type: 'received',
           userId: b.from_user?.id,
@@ -87,7 +87,7 @@ export function BoostHistory({ userId, mode = 'all', limit = 20 }: BoostHistoryP
         .limit(limit);
 
       setRecords(
-        (data || []).map((b: any) => ({
+        (data || []).map((b: { id: string; from_user?: { display_name?: string }; to_user?: { display_name?: string }; created_at: string }) => ({
           id: b.id,
           type: 'given',
           userId: b.to_dj?.id,

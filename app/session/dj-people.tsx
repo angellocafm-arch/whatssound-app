@@ -141,7 +141,7 @@ export default function DJPeopleScreen() {
         .is('left_at', null);
 
       if (!error && data && data.length > 0) {
-        setUsers(data.map((m: any, i: number) => ({
+        setUsers(data.map((m: { user_id: string; role?: string; joined_at?: string; profile?: { display_name?: string; avatar_url?: string } }, i: number) => ({
           id: m.user?.id || m.id,
           name: m.user?.display_name || 'Usuario',
           avatar: ['👩‍🦰', '🧑', '👩', '🧔', '👱‍♀️', '🧑‍🦱', '👩‍🦳', '👨'][i % 8],

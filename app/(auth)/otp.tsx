@@ -73,7 +73,7 @@ export default function OTPScreen() {
     }
   };
 
-  const handleKeyPress = (e: any, index: number) => {
+  const handleKeyPress = (e: { nativeEvent?: { key?: string } }, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
       inputs.current[index - 1]?.focus();
     }
@@ -155,7 +155,7 @@ export default function OTPScreen() {
           router.replace('/(auth)/create-profile');
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError('Error de verificación. Inténtalo de nuevo.');
     }
 

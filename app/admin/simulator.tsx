@@ -32,7 +32,7 @@ interface PendingTransaction {
   amount_cents: number;
   fee_cents: number;
   net_cents: number;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   from_user: { username: string; display_name: string } | null;
   to_user: { username: string; display_name: string; dj_name?: string } | null;
@@ -51,7 +51,7 @@ interface PendingNotification {
 interface AuditEntry {
   id: string;
   action: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 

@@ -275,7 +275,7 @@ export async function getSessionTips(sessionId: string): Promise<{
   
   // Agrupar por sender
   const tipperMap = new Map<string, number>();
-  tips.forEach((t: any) => {
+  tips.forEach((t: { from_user_id: string; to_user_id: string; amount: number }) => {
     const name = t.is_anonymous ? 'Anónimo' : (t.sender?.display_name || 'Usuario');
     tipperMap.set(name, (tipperMap.get(name) || 0) + Number(t.amount));
   });

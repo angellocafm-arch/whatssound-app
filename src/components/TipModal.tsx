@@ -19,7 +19,7 @@ import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { usePayments } from '../hooks/usePayments';
-// TODO: Añadir confetti cuando se instale react-native-confetti-cannon
+// NOTE: Add confetti cuando se instale react-native-confetti-cannon
 // import ConfettiCannon from 'react-native-confetti-cannon';
 
 interface TipModalProps {
@@ -96,7 +96,7 @@ export function TipModal({ visible, onClose, djId, djName, djAvatar, sessionId }
     >
       <Pressable style={styles.overlay} onPress={handleClose}>
         <Pressable style={styles.container} onPress={(e) => e.stopPropagation()}>
-          {/* TODO: Confetti cuando se instale la dependencia */}
+          {/* NOTE: Confetti cuando se instale la dependencia */}
           {/* showConfetti && <ConfettiCannon count={100} origin={{x:150,y:0}} fadeOut colors={['#FFD700','#4CAF50','#FFA500']} /> */}
 
           {/* State: Select */}

@@ -307,7 +307,7 @@ export async function getPendingTransactions(): Promise<Transaction[]> {
 /**
  * Crear notificación de pago recibido
  */
-async function createPaymentNotification(tx: any) {
+async function createPaymentNotification(tx: { id: string; amount: number; from_user_id: string; to_user_id: string }) {
   const { data: fromUser } = await supabase
     .from('ws_profiles')
     .select('username, display_name')
@@ -355,7 +355,7 @@ async function logAudit(
   userId: string | null,
   resourceType: string,
   resourceId: string,
-  metadata: any
+  metadata: Record<string, unknown>
 ) {
   await supabase.from('ws_audit_log').insert({
     action,

@@ -107,7 +107,7 @@ function formatTimestamp(date: Date): string {
 }
 
 interface ChatRowProps {
-  chat: any;
+  chat: { id: string; name?: string; members?: { user_id: string; profile?: { display_name?: string } }[] };
   onPress: () => void;
 }
 
@@ -209,7 +209,7 @@ export default function ChatsScreen() {
             .neq('sender_id', user.id);
 
           // Para chats privados, encontrar el contacto (no soy yo)
-          const contact = conv.members?.find((m: any) => m.user_id !== user.id);
+          const contact = conv.members?.find((m: { user_id: string }) => m.user_id !== user.id);
 
           // profile puede ser array o objeto dependiendo del join
           const profile = Array.isArray(contact?.profile) ? contact.profile[0] : contact?.profile;

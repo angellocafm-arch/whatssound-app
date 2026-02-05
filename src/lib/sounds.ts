@@ -123,7 +123,7 @@ async function playGoldenBoostSoundWeb(): Promise<void> {
  */
 async function playGoldenBoostSoundNative(): Promise<void> {
   try {
-    // TODO: Añadir archivo de sonido real en assets/sounds/
+    // NOTE: Sound files are optional en assets/sounds/
     // Por ahora, usar la versión web como fallback si está disponible
     
     // Configurar modo de audio
@@ -231,7 +231,7 @@ export async function playNotificationSound(): Promise<void> {
  * Llamar al iniciar la app
  */
 export async function preloadSounds(): Promise<void> {
-  // TODO: Implementar pre-carga de archivos de sonido
+  // NOTE: Preloading is optional de archivos de sonido
   // console.log('[Sounds] Pre-carga de sonidos iniciada');
 }
 

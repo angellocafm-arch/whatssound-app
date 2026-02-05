@@ -152,8 +152,8 @@ export default function AdminDashboard() {
           supabase.from('ws_profiles').select('display_name, golden_boosts_received').order('golden_boosts_received', { ascending: false }).limit(1),
         ]);
 
-        const totalTips = tipsData?.reduce((s: number, t: any) => s + Number(t.amount), 0) || 0;
-        const activeMembers = activeSessions?.reduce((s: number, ses: any) => s + (ses.members?.length || 0), 0) || 0;
+        const totalTips = tipsData?.reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0) || 0;
+        const activeMembers = activeSessions?.reduce((s: number, ses: { members?: unknown[] }) => s + (ses.members?.length || 0), 0) || 0;
 
         setMetrics({
           totalUsers: userCount || 0,
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
         });
 
         if (activeSessions && activeSessions.length > 0) {
-          setLiveSessions(activeSessions.map((s: any) => ({
+          setLiveSessions(activeSessions.map((s: { id: string; name: string; listener_count?: number }) => ({
             name: s.name,
             dj: s.dj?.dj_name || 'DJ',
             listeners: s.members?.length || 0,
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
         }
 
         if (recentMembers && recentMembers.length > 0) {
-          setActivity(recentMembers.map((m: any) => ({
+          setActivity(recentMembers.map((m: { user_id: string; joined_at: string; profile?: { display_name?: string } }) => ({
             name: m.profile?.display_name || 'Usuario',
             action: `Se unió como ${m.role}`,
             time: new Date(m.joined_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),

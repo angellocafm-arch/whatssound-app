@@ -38,7 +38,7 @@ export function useRealtimeVotes(sessionId: string) {
         .order('vote_count', { ascending: false });
 
       if (data) {
-        setSongs(data.map((s: any) => ({
+        setSongs(data.map((s: { id: string; title: string; artist: string; votes?: number; status?: string }) => ({
           id: s.id,
           title: s.title,
           artist: s.artist,

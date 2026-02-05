@@ -52,7 +52,7 @@ const cache = new Map<string, any>();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutos
 
 interface CacheEntry {
-  data: any;
+  data: unknown;
   timestamp: number;
 }
 
@@ -61,7 +61,7 @@ function getCacheKey(endpoint: string, params?: Record<string, string>): string 
   return `${endpoint}?${paramStr}`;
 }
 
-function getFromCache(key: string): any | null {
+function getFromCache(key: string): unknown {
   const entry = cache.get(key) as CacheEntry;
   if (!entry) return null;
   
@@ -73,7 +73,7 @@ function getFromCache(key: string): any | null {
   return entry.data;
 }
 
-function setCache(key: string, data: any): void {
+function setCache(key: string, data: unknown): void {
   cache.set(key, {
     data,
     timestamp: Date.now()

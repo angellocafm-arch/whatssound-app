@@ -68,7 +68,7 @@ export default function FavoritesScreen() {
         .limit(20);
 
       if (votedSongs) {
-        setSongs(votedSongs.map((v: any) => ({
+        setSongs(votedSongs.map((v: { song?: { id: string; title: string; artist: string; album_art?: string } }) => ({
           id: v.song?.id || '',
           title: v.song?.title || 'Sin título',
           artist: v.song?.artist || 'Desconocido',

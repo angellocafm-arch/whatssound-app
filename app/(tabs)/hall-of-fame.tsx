@@ -122,7 +122,7 @@ export default function HallOfFameScreen() {
       if (weeklyError) throw weeklyError;
 
       // Agrupar por DJ
-      const djCounts: Record<string, { dj: any; count: number }> = {};
+      const djCounts: Record<string, { dj: { id: string; display_name: string; dj_name?: string }; count: number }> = {};
       (weeklyData || []).forEach((boost) => {
         const djId = boost.to_dj_id;
         if (!djCounts[djId]) {

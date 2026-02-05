@@ -44,7 +44,7 @@ export default function HistoryScreen() {
           .select('id, name, genres, started_at, ended_at, is_active, dj_id, members:ws_session_members(id), songs:ws_songs(id)')
           .order('started_at', { ascending: false });
         if (data && data.length > 0) {
-          setDbSessions(data.map((s: any) => ({
+          setDbSessions(data.map((s: { id: string; name: string; dj?: { dj_name?: string }; songs?: { status: string }[] }) => ({
             name: s.name,
             genre: s.genres?.join(' · ') || 'Mix',
             role: 'DJ', // demo: all shown as DJ

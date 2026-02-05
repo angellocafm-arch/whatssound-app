@@ -206,8 +206,8 @@ export default function LiveScreen() {
       const { data, error } = await query;
 
       if (!error && data && data.length > 0) {
-        const mapped = data.map((s: any) => {
-          const currentSong = s.songs?.find((sg: any) => sg.status === 'playing');
+        const mapped = data.map((s: { id: string; name: string; dj?: { dj_name: string }; members?: unknown[]; songs?: { status: string }[] }) => {
+          const currentSong = s.songs?.find((sg: { status: string }) => sg.status === 'playing');
           return {
             id: s.id,
             name: s.name,

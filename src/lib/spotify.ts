@@ -65,13 +65,13 @@ function formatDuration(ms: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-function mapTrack(track: any): SpotifyTrack {
+function mapTrack(track: { id: string; name: string; artists?: { name: string }[]; album?: { images?: { url: string }[] }; duration_ms?: number }): SpotifyTrack {
   const images = track.album?.images || [];
   return {
     id: track.id,
     name: track.name,
-    artist: track.artists?.map((a: any) => a.name).join(', ') || 'Desconocido',
-    artists: track.artists?.map((a: any) => a.name) || [],
+    artist: track.artists?.map((a: { name: string }) => a.name).join(', ') || 'Desconocido',
+    artists: track.artists?.map((a: { name: string }) => a.name) || [],
     album: track.album?.name || '',
     albumArt: images[0]?.url || null,       // 640x640
     albumArtSmall: images[2]?.url || null,   // 64x64

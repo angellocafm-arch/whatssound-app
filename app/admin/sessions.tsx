@@ -55,7 +55,7 @@ export default function SessionsPage() {
         .limit(50);
 
       if (!error && data) {
-        const enriched = await Promise.all(data.map(async (session: any) => {
+        const enriched = await Promise.all(data.map(async (session: { id: string; name: string; dj_id: string; is_active: boolean; started_at?: string }) => {
           // Contar miembros
           const { count: memberCount } = await supabase
             .from('ws_session_members')
@@ -74,7 +74,7 @@ export default function SessionsPage() {
             .from('ws_tips')
             .select('amount')
             .eq('session_id', session.id);
-          const tipTotal = tips?.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || 0;
+          const tipTotal = tips?.reduce((sum: number, t: { amount?: number }) => sum + (t.amount || 0), 0) || 0;
 
           // Contar mensajes
           const { count: msgCount } = await supabase
@@ -109,7 +109,7 @@ export default function SessionsPage() {
 
         // Total tips
         const { data: allTips } = await supabase.from('ws_tips').select('amount');
-        setTotalTips(allTips?.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || 0);
+        setTotalTips(allTips?.reduce((sum: number, t: { amount?: number }) => sum + (t.amount || 0), 0) || 0);
       }
       setLoading(false);
     };

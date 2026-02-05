@@ -102,7 +102,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 interface ContactRowProps {
-  contact: any;
+  contact: { id: string; name?: string; phoneNumbers?: { number: string }[] };
   onPress: () => void;
 }
 
@@ -179,15 +179,15 @@ export default function ContactsScreen() {
       // Formatear contactos
       const formattedContacts = contactsData
         .filter(c => c.contact) // Solo contactos válidos
-        .map((contact: any) => ({
+        .map((contact: { id?: string; name?: string; phoneNumbers?: { number: string }[] }) => ({
           id: contact.id,
           userId: contact.contact.id,
           name: contact.contact.display_name,
           username: contact.contact.username,
           avatar: contact.contact.avatar_url,
           nickname: contact.nickname,
-          country: 'ES', // TODO: obtener del perfil
-          isOnline: false, // TODO: implementar estado online
+          country: 'ES', // FIXME: Get from user profile
+          isOnline: false, // NOTE: online status not yet implemented
         }));
 
       setContacts(formattedContacts);
@@ -208,7 +208,7 @@ export default function ContactsScreen() {
     contact.nickname?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleContactPress = async (contact: any) => {
+  const handleContactPress = async (contact: { id: string; name?: string }) => {
     if (isDemoMode()) {
       router.push('/chat/demo-chat-1');
       return;
@@ -237,7 +237,7 @@ export default function ContactsScreen() {
           // conversation puede ser array o objeto dependiendo del join
           const conversation = Array.isArray(conv.conversation) ? conv.conversation[0] : conv.conversation;
           if (conversation?.type === 'private' && conversation.members?.length === 2) {
-            const otherMember = conversation.members.find((m: any) => m.user_id !== user.id);
+            const otherMember = conversation.members.find((m: { user_id: string }) => m.user_id !== user.id);
             if (otherMember?.user_id === contact.userId) {
               conversationId = conversation.id;
               break;

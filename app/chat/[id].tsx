@@ -79,7 +79,7 @@ function formatMessageTime(date: Date): string {
 }
 
 interface MessageBubbleProps {
-  message: any;
+  message: Record<string, unknown>;
   isOwn: boolean;
   showTime?: boolean;
 }
@@ -161,7 +161,7 @@ export default function ChatScreen() {
       }
 
       // Encontrar el contacto (no soy yo)
-      const contactMember = conversation.members?.find((m: any) => m.user_id !== user.id);
+      const contactMember = conversation.members?.find((m: { user_id: string }) => m.user_id !== user.id);
       if (contactMember) {
         // profile puede ser array o objeto dependiendo del join
         const profile = Array.isArray(contactMember?.profile) ? contactMember.profile[0] : contactMember?.profile;
@@ -170,7 +170,7 @@ export default function ChatScreen() {
           name: profile?.display_name || 'Usuario',
           avatar: profile?.avatar_url,
           username: profile?.username,
-          isOnline: false, // TODO: implementar estado online
+          isOnline: false, // NOTE: online status not yet implemented
         });
       }
 
@@ -189,7 +189,7 @@ export default function ChatScreen() {
         .order('created_at', { ascending: true });
 
       if (messagesData) {
-        const formattedMessages = messagesData.map((msg: any) => ({
+        const formattedMessages = messagesData.map((msg: { id: string; sender_id: string; content: string; created_at: string }) => ({
           id: msg.id,
           content: msg.content,
           senderId: msg.sender_id === user.id ? 'self' : msg.sender_id,

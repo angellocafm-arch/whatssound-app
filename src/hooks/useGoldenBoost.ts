@@ -92,7 +92,7 @@ export function useGoldenBoost() {
           ? new Date(data.golden_boost_last_reset) 
           : null,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[useGoldenBoost] Error cargando estado:', err);
       setError(err.message);
     } finally {
@@ -149,7 +149,7 @@ export function useGoldenBoost() {
       }));
       
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[useGoldenBoost] Error dando boost:', err);
       setError(err.message);
       return false;

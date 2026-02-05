@@ -101,7 +101,7 @@ export default function CreateGroupScreen() {
       const chatId = chats[0].id;
 
       // 2. Add members (creator as admin + selected as member)
-      const members: any[] = [];
+      const members: { user_id: string; role: string }[] = [];
       if (userId) members.push({ chat_id: chatId, user_id: userId, role: 'admin' });
       selected.forEach(uid => members.push({ chat_id: chatId, user_id: uid, role: 'member' }));
 
@@ -128,7 +128,7 @@ export default function CreateGroupScreen() {
 
       // Navigate to the new group
       router.replace(`/group/${chatId}`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error creating group:', e);
       if (Platform.OS === 'web') {
         alert('Error al crear el grupo: ' + (e.message || e));

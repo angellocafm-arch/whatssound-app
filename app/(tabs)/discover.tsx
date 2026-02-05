@@ -225,8 +225,8 @@ export default function DiscoverScreen() {
       if (!showSeed) sessQ = sessQ.eq('is_seed', false);
       const { data: sess } = await sessQ;
       if (sess && sess.length > 0) {
-        setDbSessions(sess.map((s: any) => {
-          const currentSong = s.songs?.find((song: any) => song.status === 'playing');
+        setDbSessions(sess.map((s: { id: string; name: string; dj?: { dj_name: string }; members?: unknown[]; songs?: { status: string }[] }) => {
+          const currentSong = s.songs?.find((song: { status: string }) => song.status === 'playing');
           return {
             id: s.id, 
             name: s.name, 
@@ -248,7 +248,7 @@ export default function DiscoverScreen() {
       const { data: djs } = await djQ;
       if (djs && djs.length > 0) {
         const colors_arr = ['#25D366', '#53BDEB', '#FFA726', '#EF5350', '#AB47BC', '#26C6DA', '#66BB6A'];
-        setDbDJs(djs.map((d: any, i: number) => ({
+        setDbDJs(djs.map((d: { id: string; display_name: string; dj_name?: string; genres?: string[] }, i: number) => ({
           id: d.id, name: d.dj_name || d.display_name,
           initials: (d.dj_name || d.display_name).split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
           genre: d.genres?.[0] || 'Mix', followers: d.is_verified ? '2.3K' : '500+',

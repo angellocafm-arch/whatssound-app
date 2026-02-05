@@ -38,14 +38,14 @@ async function getDBContext(): Promise<string> {
       supabase.from('ws_tips').select('amount').eq('status', 'completed'),
       supabase.from('ws_sessions').select('name, genres, dj:ws_profiles!dj_id(dj_name), members:ws_session_members(id)').eq('is_active', true),
     ]);
-    const totalTips = tips?.reduce((s: number, t: any) => s + Number(t.amount), 0) || 0;
+    const totalTips = tips?.reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0) || 0;
     const lines = [
       `Usuarios: ${users}`,
       `Sesiones totales: ${sessions}`,
       `Canciones: ${songs}`,
       `Mensajes: ${msgs}`,
       `Propinas: €${totalTips.toFixed(2)} (${tips?.length || 0} transacciones)`,
-      `Sesiones activas: ${active?.map((s: any) => `${s.name} (${s.dj?.dj_name}, ${s.members?.length || 0} miembros)`).join(', ') || 'ninguna'}`,
+      `Sesiones activas: ${active?.map((s: { name: string; dj?: { dj_name?: string }; members?: unknown[] }) => `${s.name} (${s.dj?.dj_name}, ${s.members?.length || 0} miembros)`).join(', ') || 'ninguna'}`,
     ];
     return lines.join('\n');
   } catch { return '(No se pudieron obtener datos de la DB)'; }
@@ -83,7 +83,7 @@ export default function ChatPage() {
       const rTime = new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
       setMessages(prev => [...prev, { role: 'assistant', content: response, time: rTime }]);
       setChatHistory(prev => [...prev, { role: 'assistant', content: response }]);
-    } catch (e: any) {
+    } catch (e: unknown) {
       const rTime = new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
       setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${e.message}`, time: rTime }]);
     }

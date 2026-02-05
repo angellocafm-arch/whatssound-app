@@ -75,7 +75,7 @@ export default function TipsHistoryScreen() {
       // Load received tips (for DJs)
       if (isDJ) {
         const received = await getUserTipsReceived(userId);
-        setReceivedTips(received.map((t: any) => ({
+        setReceivedTips(received.map((t: { id: string; amount: number; created_at: string; from_user?: { display_name: string }; to_user?: { display_name: string } }) => ({
           id: t.id,
           name: t.is_anonymous ? 'Anónimo' : (t.sender?.display_name || 'Usuario'),
           song: t.song ? `${t.song.title} — ${t.song.artist}` : t.message || 'Volumen general',
@@ -91,7 +91,7 @@ export default function TipsHistoryScreen() {
 
       // Load sent tips (for everyone)
       const sent = await getUserTipsSent(userId);
-      setSentTips(sent.map((t: any) => ({
+      setSentTips(sent.map((t: { id: string; amount: number; created_at: string; from_user?: { display_name: string }; to_user?: { display_name: string } }) => ({
         id: t.id,
         name: t.receiver?.dj_name || t.receiver?.display_name || 'DJ',
         song: t.session?.name || t.message || 'Volumen general',

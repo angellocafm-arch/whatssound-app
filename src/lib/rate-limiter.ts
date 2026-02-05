@@ -122,7 +122,7 @@ export function validatePaymentAmount(
  */
 export async function validateGoldenBoostAvailable(
   userId: string,
-  supabase: any
+  supabase: unknown
 ): Promise<{ valid: boolean; error?: string; available?: number }> {
   const { data: profile, error } = await supabase
     .from('ws_profiles')

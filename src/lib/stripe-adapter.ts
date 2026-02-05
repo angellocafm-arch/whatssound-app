@@ -191,7 +191,7 @@ export function verifyWebhookSignature(
 
 export function simulateWebhookEvent(
   type: StripeEventType,
-  data: any
+  data: Record<string, unknown>
 ): StripeEvent {
   return {
     id: generateMockId('evt'),

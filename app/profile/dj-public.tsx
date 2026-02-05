@@ -110,7 +110,7 @@ export default function DJPublicProfile() {
         .limit(5);
 
       if (djSessions) {
-        const sessionsWithStats = djSessions.map((s: any) => ({
+        const sessionsWithStats = djSessions.map((s: { id: string; name: string; started_at?: string; listener_count?: number }) => ({
           id: s.id,
           name: s.name,
           created_at: s.created_at,

@@ -75,8 +75,8 @@ export function useSessions(filter?: { active?: boolean }) {
       if (queryError) throw queryError;
 
       if (data) {
-        const mapped = data.map((s: any) => {
-          const currentSong = s.songs?.find((song: any) => song.status === 'playing');
+        const mapped = data.map((s: { id: string; name: string; dj?: { display_name?: string; dj_name?: string }; listener_count?: number; songs?: { status: string }[] }) => {
+          const currentSong = s.songs?.find((song: { status: string }) => song.status === 'playing');
           
           // Calculate duration
           let duration = '';
@@ -158,7 +158,7 @@ export function useProfiles(filter?: { isDj?: boolean }) {
       if (data) {
         const colors = ['#25D366', '#53BDEB', '#FFA726', '#EF5350', '#AB47BC', '#26C6DA', '#66BB6A'];
         
-        const mapped = data.map((p: any, index: number) => ({
+        const mapped = data.map((p: { id: string; display_name?: string; dj_name?: string; is_dj?: boolean; golden_boosts_received?: number }, index: number) => ({
           id: p.id,
           display_name: p.display_name,
           dj_name: p.dj_name,

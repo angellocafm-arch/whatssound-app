@@ -209,7 +209,7 @@ export function GoldenBoostButton({
       // Ocultar animación después de 4 segundos
       setTimeout(() => setShowAnimation(false), 4000);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[GoldenBoost] Error:', err);
       setError(err.message || 'Error al dar Golden Boost');
     } finally {

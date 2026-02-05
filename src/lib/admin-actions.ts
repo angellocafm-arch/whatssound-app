@@ -102,7 +102,7 @@ export async function deleteTestData(): Promise<{ ok: boolean; deleted: number; 
     deleted += c9 || 0;
 
     return { ok: true, deleted };
-  } catch (e: any) {
+  } catch (e: unknown) {
     return { ok: false, deleted, error: e.message };
   }
 }
@@ -126,7 +126,7 @@ export async function deleteAllData(): Promise<{ ok: boolean; deleted: number; e
     }
 
     return { ok: true, deleted };
-  } catch (e: any) {
+  } catch (e: unknown) {
     return { ok: false, deleted, error: e.message };
   }
 }
