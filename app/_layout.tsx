@@ -64,7 +64,7 @@ const queryClient = new QueryClient({
 });
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user, initialized, initialize } = useAuthStore();
+  const { user, profile, initialized, initialize } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -122,8 +122,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (!user && !inAuthGroup && !isWelcome) {
       // Sin user y fuera de auth → ir a welcome (página de inicio)
       router.replace('/welcome');
-    } else if (user && inAuthGroup && !isAllowedAuthRoute) {
-      // Con user en auth, pero NO en rutas permitidas → ir a tabs
+    } else if (user && profile && inAuthGroup && !isAllowedAuthRoute) {
+      // Con user Y perfil completo en auth, pero NO en rutas permitidas → ir a tabs
+      // Si no tiene perfil, dejarlo en auth para que complete el registro
       router.replace('/(tabs)');
     }
   }, [user, initialized, segments]);
