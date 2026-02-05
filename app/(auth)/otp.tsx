@@ -129,14 +129,17 @@ export default function OTPScreen() {
       }
 
       if (data.user) {
-        // Verificar si tiene perfil
+        // Login real con Supabase - limpiar cualquier perfil demo
+        useAuthStore.setState({ profile: null });
+        
+        // Verificar si tiene perfil REAL en la base de datos
         const { data: profile, error: profileError } = await supabase
           .from('ws_profiles')
           .select('*')
           .eq('id', data.user.id)
           .single();
 
-        // Si hay perfil Y no hay error, ir a tabs
+        // Si hay perfil REAL Y no hay error, ir a tabs
         if (profile && !profileError) {
           setProfile({
             id: profile.id,
