@@ -81,8 +81,25 @@ export default function CreateProfileScreen() {
       
       debugLog.info('CreateProfile', `UUID: ${odUserId}, Username: ${username}`);
 
+      // Primero verificar conexión a Supabase
+      debugLog.info('CreateProfile', 'Verificando conexión a Supabase...');
+      
+      try {
+        const { count, error: testError } = await supabase
+          .from('ws_profiles')
+          .select('*', { count: 'exact', head: true });
+        
+        if (testError) {
+          debugLog.error('CreateProfile', 'Test conexión falló', testError);
+        } else {
+          debugLog.success('CreateProfile', `Conexión OK, ${count} perfiles existen`);
+        }
+      } catch (testErr) {
+        debugLog.error('CreateProfile', 'Error de red en test', testErr);
+      }
+      
       // Crear o actualizar perfil en Supabase
-      debugLog.info('CreateProfile', 'Llamando a Supabase...');
+      debugLog.info('CreateProfile', 'Insertando perfil...');
       
       const { data: profile, error: profileError } = await supabase
         .from('ws_profiles')
