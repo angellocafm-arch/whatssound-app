@@ -2,8 +2,6 @@ node_modules/
 dist/
 .expo/
 *.tsbuildinfo
-.github/workflows/
-.github/
 referencia/
 .vercel
 .env*.local
