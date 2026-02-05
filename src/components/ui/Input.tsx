@@ -54,6 +54,10 @@ export const Input: React.FC<InputProps> = ({
           selectionColor={colors.primary}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          autoComplete="off"
+          autoCorrect={false}
+          autoCapitalize="none"
+          spellCheck={false}
           {...rest}
         />
         {rightIcon && <View style={styles.iconRight}>{rightIcon}</View>}
