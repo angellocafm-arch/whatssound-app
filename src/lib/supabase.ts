@@ -7,8 +7,9 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Hardcoded - NO usar variables de entorno, Vercel no las procesa bien con Expo
-const supabaseUrl = 'https://xyehncvvvprrqwnsefcr.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZWhuY3Z2dnBycnF3bnNlZmNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NTA4OTgsImV4cCI6MjA4NTIyNjg5OH0.VEaTmqpMA7XdUa-tZ7mXib1ciweD7y5UU4dFGZq3EtQ';
+// Proyecto: openparty2026@gmail.com (ptwwsbnuatdbdxiquusj)
+const supabaseUrl = 'https://ptwwsbnuatdbdxiquusj.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0d3dzYm51YXRkYmR4aXF1dXNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MTkwMjEsImV4cCI6MjA4NTE5NTAyMX0.qJXn_cGYDltQH0KCNPN8sgvkYMhKCA6QG7DSPXK87ro';
 
 // Log para debug
 if (typeof console !== 'undefined') {
