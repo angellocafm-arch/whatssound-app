@@ -10,7 +10,9 @@
     "web": "expo start --web",
     "test": "jest",
     "test:nav": "node scripts/test-navigation.js",
-    "test:all": "npm run test:nav && npm test"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm run test:nav && npm test && npm run test:e2e"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
