@@ -15,7 +15,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { colors } from '../src/theme/colors';
 import { useAuthStore } from '../src/stores/authStore';
-import { isDemoMode, DEMO_USER, DEMO_DJ, getNeedsProfile } from '../src/lib/demo';
+import { isDemoMode, setDemoMode, DEMO_USER, DEMO_DJ, getNeedsProfile } from '../src/lib/demo';
 import { useDeepLinking } from '../src/hooks/useDeepLinking';
 import { DebugOverlay } from '../src/components/ui/DebugOverlay';
 import debugLog from '../src/lib/debugToast';
@@ -82,7 +82,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       try {
         const params = new URLSearchParams(window.location.search);
         if (params.get('demo') === 'false') {
-          // Usuario quiere modo pruebas, no establecer perfil demo
+          // Usuario quiere modo pruebas - establecer modo y limpiar auth
+          setDemoMode(false);
           useAuthStore.setState({
             user: null,
             session: null,
