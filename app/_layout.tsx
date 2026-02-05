@@ -108,9 +108,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const authRoutesWithUser = ['(auth)/permissions', '(auth)/create-profile', '(auth)/onboarding', '(auth)/genres'];
     const isAllowedAuthRoute = authRoutesWithUser.some(route => currentPath.startsWith(route.replace('(auth)/', '')));
 
-    if (!user && !inAuthGroup) {
-      // Sin user y fuera de auth → ir a login
-      router.replace('/(auth)/login');
+    const isWelcome = segments[0] === 'welcome';
+    
+    if (!user && !inAuthGroup && !isWelcome) {
+      // Sin user y fuera de auth → ir a welcome (página de inicio)
+      router.replace('/welcome');
     } else if (user && inAuthGroup && !isAllowedAuthRoute) {
       // Con user en auth, pero NO en rutas permitidas → ir a tabs
       router.replace('/(tabs)');
