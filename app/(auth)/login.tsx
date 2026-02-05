@@ -61,7 +61,8 @@ export default function LoginScreen() {
         debugLog.info('Login', 'Número de prueba detectado, saltando OTP');
         
         if (Platform.OS === 'web') {
-          localStorage.removeItem('ws_demo_mode');
+          // NO eliminar ws_demo_mode - lo necesitamos en create-profile
+          // localStorage.removeItem('ws_demo_mode');
           markNeedsProfile(fullPhone);
           debugLog.info('Login', `Teléfono guardado: ${fullPhone}`);
           

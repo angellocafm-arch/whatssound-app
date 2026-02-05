@@ -186,11 +186,9 @@ export default function CreateProfileScreen() {
     setLoading(false);
   };
 
-  // En modo demo no debería llegar aquí
-  if (isDemoMode()) {
-    router.replace('/(tabs)');
-    return null;
-  }
+  // En modo demo (inversores) no debería llegar aquí
+  // Si llega, es que algo falló - pero no redirigimos para no romper el flujo
+  // La lógica de navegación está en _layout.tsx
 
   return (
     <ScrollView
