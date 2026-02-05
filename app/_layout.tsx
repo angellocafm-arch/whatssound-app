@@ -20,6 +20,7 @@ import { useDeepLinking } from '../src/hooks/useDeepLinking';
 import { DebugOverlay } from '../src/components/ui/DebugOverlay';
 import debugLog from '../src/lib/debugToast';
 import { initSentry, captureError } from '../src/lib/sentry';
+import { initPostHog } from '../src/lib/posthog';
 
 // ═══════════════════════════════════════════════════════════
 // 🎯 MODOS:
@@ -73,6 +74,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Inicializar Sentry para monitoreo de errores
     initSentry();
+    // Inicializar PostHog para analytics
+    initPostHog();
     
     if (isDemoMode()) {
       // MODO INVERSORES: bypass auth, usuario demo
