@@ -1,6 +1,11 @@
 /**
  * WhatsSound — Root Layout
- * Auth-aware navigation with Supabase + DEMO_MODE bypass
+ * Auth-aware navigation with DEMO_MODE bypass for investors
+ * 
+ * URLs fijas:
+ * - Inversores: / (default, demo=true)
+ * - Pruebas: /?demo=false
+ * - Dashboard: /admin
  */
 
 import React, { useEffect } from 'react';
@@ -10,19 +15,20 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { colors } from '../src/theme/colors';
 import { useAuthStore } from '../src/stores/authStore';
-import { isDemoMode, isTestMode, getOrCreateTestUser, DEMO_USER as DEMO_PROFILE_DATA, DEMO_DJ } from '../src/lib/demo';
+import { isDemoMode, DEMO_USER, DEMO_DJ, getNeedsProfile } from '../src/lib/demo';
 import { useDeepLinking } from '../src/hooks/useDeepLinking';
 
 // ═══════════════════════════════════════════════════════════
-// 🎯 DEMO MODE — ?demo=true in URL or defaults to true
-// Real mode: ?demo=false → real auth, real data
+// 🎯 MODOS:
+// - demo=true (default): Inversores, bypass auth, mockups
+// - demo=false: Pruebas, flujo real, número ficticio funciona
 // ═══════════════════════════════════════════════════════════
 
-const DEMO_USER = {
-  id: DEMO_PROFILE_DATA.id,
+const DEMO_AUTH_USER = {
+  id: DEMO_USER.id,
   email: 'demo@whatssound.app',
   app_metadata: {},
-  user_metadata: { display_name: DEMO_PROFILE_DATA.display_name },
+  user_metadata: { display_name: DEMO_USER.display_name },
   aud: 'authenticated',
   created_at: '2024-01-15T10:00:00Z',
 } as any;
@@ -31,13 +37,13 @@ const DEMO_SESSION = {
   access_token: 'demo-token',
   refresh_token: 'demo-refresh',
   expires_at: Math.floor(Date.now() / 1000) + 86400,
-  user: DEMO_USER,
+  user: DEMO_AUTH_USER,
 } as any;
 
 const DEMO_PROFILE = {
-  id: DEMO_PROFILE_DATA.id,
-  username: DEMO_PROFILE_DATA.username,
-  display_name: DEMO_PROFILE_DATA.display_name,
+  id: DEMO_USER.id,
+  username: DEMO_USER.username,
+  display_name: DEMO_USER.display_name,
   bio: 'Aquí por la música 💃',
   avatar_url: null,
   is_dj: false,
@@ -62,48 +68,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useDeepLinking();
 
   useEffect(() => {
-    if (isTestMode()) {
-      // TEST MODE: check if coming from phone login (needs to complete profile first)
-      const needsProfile = Platform.OS === 'web' && typeof window !== 'undefined' 
-        && localStorage.getItem('ws_test_needs_profile') === 'true';
-      
-      if (needsProfile) {
-        // Don't auto-create user, let them go through create-profile
-        useAuthStore.setState({
-          user: null,
-          session: null,
-          profile: null,
-          initialized: true,
-          loading: false,
-        });
-        return;
-      }
-      
-      // TEST MODE (from URL ?test=nombre): create/find real user in Supabase
-      (async () => {
-        const testProfile = await getOrCreateTestUser();
-        if (testProfile) {
-          useAuthStore.setState({
-            user: { ...DEMO_USER, id: testProfile.id, user_metadata: { display_name: testProfile.display_name } } as any,
-            session: { ...DEMO_SESSION, user: { ...DEMO_USER, id: testProfile.id } } as any,
-            profile: {
-              ...DEMO_PROFILE,
-              id: testProfile.id,
-              display_name: testProfile.display_name,
-              username: testProfile.username,
-              is_dj: testProfile.is_dj,
-            },
-            initialized: true,
-            loading: false,
-          });
-        }
-      })();
-      return;
-    }
     if (isDemoMode()) {
-      // INVESTOR DEMO: bypass auth, read-only mock user
+      // MODO INVERSORES: bypass auth, usuario demo
       useAuthStore.setState({
-        user: DEMO_USER,
+        user: DEMO_AUTH_USER,
         session: DEMO_SESSION,
         profile: DEMO_PROFILE,
         initialized: true,
@@ -111,12 +79,26 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       });
       return;
     }
-    // PRODUCTION: real auth
+    
+    // MODO PRUEBAS: auth real
+    // Check if returning from phone login (needs profile)
+    if (getNeedsProfile()) {
+      useAuthStore.setState({
+        user: null,
+        session: null,
+        profile: null,
+        initialized: true,
+        loading: false,
+      });
+      return;
+    }
+    
+    // Normal auth initialization
     initialize();
   }, []);
 
   useEffect(() => {
-    if (isDemoMode()) return; // Skip auth routing in demo mode
+    if (isDemoMode()) return; // No routing en modo demo
     if (!initialized) return;
 
     const inAuthGroup = segments[0] === '(auth)';
@@ -133,7 +115,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       // Con user en auth, pero NO en rutas permitidas → ir a tabs
       router.replace('/(tabs)');
     }
-    // Si está en ruta permitida con user, NO redirigir (dejar que complete el flujo)
   }, [user, initialized, segments]);
 
   if (!isDemoMode() && !initialized) {

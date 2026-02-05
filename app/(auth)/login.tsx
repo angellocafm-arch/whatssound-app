@@ -1,7 +1,6 @@
 /**
  * WhatsSound — Login con Teléfono
- * Flujo: Teléfono → OTP → Perfil
- * Modo test: salta verificación real
+ * Flujo: Teléfono → Perfil (en modo pruebas salta OTP)
  */
 
 import React, { useState } from 'react';
@@ -21,19 +20,8 @@ import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { Button } from '../../src/components/ui/Button';
 import { supabase } from '../../src/lib/supabase';
-import { isTestMode, getOrCreateTestUser, enableTestModeForPhone } from '../../src/lib/demo';
+import { isDemoMode, isTestPhone, markNeedsProfile } from '../../src/lib/demo';
 import { useAuthStore } from '../../src/stores/authStore';
-
-// ══════════════════════════════════════════════════════════════
-// MODO PRUEBA: Todos los números españoles de 9 dígitos son de prueba
-// Esto permite probar el flujo completo sin verificación SMS real
-// En producción real, eliminar esta función y usar Supabase Auth
-// ══════════════════════════════════════════════════════════════
-function isTestPhone(phone: string): boolean {
-  const cleanPhone = phone.replace(/\s/g, '');
-  // Cualquier número de 9 dígitos es de prueba (para desarrollo)
-  return cleanPhone.length >= 9;
-}
 
 // Códigos de país comunes
 const COUNTRY_CODES = [
@@ -55,6 +43,7 @@ export default function LoginScreen() {
 
   const fullPhone = `${countryCode.code}${phone.replace(/\s/g, '')}`;
   const isValidPhone = phone.replace(/\s/g, '').length >= 9;
+  const isTestNumber = isTestPhone(fullPhone);
 
   const handleContinue = async () => {
     if (!isValidPhone) return;
@@ -63,24 +52,14 @@ export default function LoginScreen() {
     setError('');
 
     try {
-      const cleanPhone = phone.replace(/\s/g, '');
-      
       // ══════════════════════════════════════════════════════════════
-      // PUERTA DE PRUEBAS: Números ficticios saltan directo a perfil
+      // MODO PRUEBAS: Números ficticios saltan OTP → directo a perfil
       // ══════════════════════════════════════════════════════════════
-      if (isTestPhone(cleanPhone)) {
-        // // console.log('🧪 Número de prueba detectado:', cleanPhone);
-        
+      if (isTestNumber) {
         if (Platform.OS === 'web') {
-          // 1. Limpiar cualquier sesión demo/test anterior
           localStorage.removeItem('ws_demo_mode');
-          localStorage.removeItem('ws_test_user');
+          markNeedsProfile(fullPhone);
           
-          // 2. Activar modo test para este teléfono
-          enableTestModeForPhone(fullPhone);
-          localStorage.setItem('ws_pending_phone', fullPhone);
-          
-          // 3. Limpiar el auth store para evitar redirect automático
           useAuthStore.setState({
             user: null,
             session: null,
@@ -90,23 +69,14 @@ export default function LoginScreen() {
           });
         }
         
-        // Saltar OTP → ir directo a crear perfil
         router.replace('/(auth)/create-profile');
         setLoading(false);
         return;
       }
 
-      // En modo test (vía URL ?test=nombre), saltamos verificación
-      if (isTestMode()) {
-        if (Platform.OS === 'web') {
-          localStorage.setItem('ws_pending_phone', fullPhone);
-        }
-        router.push('/(auth)/otp');
-        setLoading(false);
-        return;
-      }
-
-      // En producción: enviar OTP real via Supabase
+      // ══════════════════════════════════════════════════════════════
+      // PRODUCCIÓN REAL: Enviar OTP via Supabase (no implementado aún)
+      // ══════════════════════════════════════════════════════════════
       const { error: otpError } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
       });
@@ -117,7 +87,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // Guardamos el teléfono para verificar en la siguiente pantalla
       if (Platform.OS === 'web') {
         localStorage.setItem('ws_pending_phone', fullPhone);
       }
@@ -158,7 +127,6 @@ export default function LoginScreen() {
 
         {/* Phone input */}
         <View style={styles.phoneRow}>
-          {/* Country code selector */}
           <TouchableOpacity 
             style={styles.countryBtn}
             onPress={() => setShowCountryPicker(!showCountryPicker)}
@@ -168,7 +136,6 @@ export default function LoginScreen() {
             <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
           </TouchableOpacity>
 
-          {/* Phone number */}
           <TextInput
             style={styles.phoneInput}
             placeholder="612 345 678"
@@ -211,13 +178,11 @@ export default function LoginScreen() {
         />
 
         {/* Test mode indicator */}
-        {(isTestMode() || isTestPhone(phone.replace(/\s/g, ''))) && (
+        {isTestNumber && (
           <View style={styles.testBadge}>
             <Ionicons name="flask" size={14} color={colors.warning} />
             <Text style={styles.testBadgeText}>
-              {isTestPhone(phone.replace(/\s/g, '')) 
-                ? '🧪 Número de prueba: saltará verificación'
-                : 'Modo demo: verificación simulada'}
+              🧪 Modo pruebas: saltará verificación SMS
             </Text>
           </View>
         )}
