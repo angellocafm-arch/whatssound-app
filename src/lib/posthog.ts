@@ -3,7 +3,7 @@
  * Tracking de eventos y analytics
  */
 
-const POSTHOG_API_KEY = 'phc_SuEJFKYjWKGrGW6pMHRla1i4z4cTndZ8zO4HwoydG1Z';
+const POSTHOG_API_KEY = 'phc_ORBqpLlCGEsio9mTxOKJJnmEvaIQM69FB3WBOnsPZku';
 const POSTHOG_HOST = 'https://eu.i.posthog.com';
 
 let initialized = false;
