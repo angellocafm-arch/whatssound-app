@@ -1,16 +1,13 @@
 /**
  * WhatsSound — Session Components
- * Componentes para la vista de sesión en vivo
+ * Componentes para sesiones musicales
  */
 
-export { FloatingReaction } from './FloatingReaction';
-export { FloatingReactionsContainer } from './FloatingReactionsContainer';
-export { GoldenBoostAnimation } from './GoldenBoostAnimation';
-export { GoldenBoostButton } from './GoldenBoostButton';
-export { PresenceBar } from './PresenceBar';
-export { SessionPulse } from './SessionPulse';
-export { ShareButton } from './ShareButton';
+export { NowPlaying, PulsingDot } from './NowPlaying';
+export type { Song } from './NowPlaying';
+
 export { SongQueue } from './SongQueue';
-export { default as SongRequest } from './SongRequest';
-export { TipButton } from './TipButton';
-export { default as TipNotification } from './TipNotification';
+export type { QueuedSong } from './SongQueue';
+
+export { SessionChat } from './SessionChat';
+export type { ChatMessage } from './SessionChat';
