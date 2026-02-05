@@ -130,13 +130,14 @@ export default function OTPScreen() {
 
       if (data.user) {
         // Verificar si tiene perfil
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('ws_profiles')
           .select('*')
           .eq('id', data.user.id)
           .single();
 
-        if (profile) {
+        // Si hay perfil Y no hay error, ir a tabs
+        if (profile && !profileError) {
           setProfile({
             id: profile.id,
             display_name: profile.display_name,
