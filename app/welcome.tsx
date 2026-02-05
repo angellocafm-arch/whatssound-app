@@ -3,7 +3,7 @@
  * Presentación de la app para nuevos usuarios
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../src/theme/colors';
 import { typography } from '../src/theme/typography';
 import { spacing, borderRadius } from '../src/theme/spacing';
+import { setDemoMode } from '../src/lib/demo';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,7 +47,14 @@ const FEATURES = [
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { code, from } = useLocalSearchParams<{ code?: string; from?: string }>();
+  const { code, from, demo } = useLocalSearchParams<{ code?: string; from?: string; demo?: string }>();
+
+  // Guardar el modo demo si viene en la URL
+  useEffect(() => {
+    if (demo !== undefined) {
+      setDemoMode(demo !== 'false');
+    }
+  }, [demo]);
 
   const handleStart = () => {
     if (code) {
