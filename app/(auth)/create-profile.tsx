@@ -76,6 +76,8 @@ export default function CreateProfileScreen() {
       const username = `user_${cleanPhone.slice(-6)}`;
 
       // Crear o actualizar perfil en Supabase
+      console.log('Creating profile with ID:', odUserId, 'username:', username);
+      
       const { data: profile, error: profileError } = await supabase
         .from('ws_profiles')
         .upsert({
@@ -86,14 +88,23 @@ export default function CreateProfileScreen() {
           genres: selectedGenres,
           is_dj: false,
           is_seed: false,
-          phone: pendingPhone,
+        }, {
+          onConflict: 'id'
         })
         .select()
         .single();
 
+      console.log('Supabase response:', { profile, profileError });
+
       if (profileError) {
         console.error('Error creating profile:', profileError);
-        setError('Error al crear perfil. Inténtalo de nuevo.');
+        setError(`Error: ${profileError.message}`);
+        setLoading(false);
+        return;
+      }
+      
+      if (!profile) {
+        setError('No se pudo crear el perfil. Inténtalo de nuevo.');
         setLoading(false);
         return;
       }
