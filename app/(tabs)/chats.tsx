@@ -280,17 +280,24 @@ export default function ChatsScreen() {
         <View style={s.headerActions}>
           <TouchableOpacity
             style={s.headerButton}
+            onPress={() => router.push('/search')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="search-outline" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.headerButton}
+            onPress={() => router.push('/notifications')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.headerButton}
             onPress={handleNewChat}
             activeOpacity={0.7}
           >
             <Ionicons name="create-outline" size={24} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.headerButton}
-            onPress={handleContactsPress}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="people-outline" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
