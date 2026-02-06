@@ -66,7 +66,7 @@ const PLANS: PlanData[] = [
     tier: 'creator',
     name: 'Creator',
     icon: '⭐',
-    price: 1.99,
+    price: 500,
     description: 'Para creadores en crecimiento',
     color: '#F59E0B',
     features: [
@@ -84,7 +84,7 @@ const PLANS: PlanData[] = [
     tier: 'pro',
     name: 'Pro',
     icon: '🎧',
-    price: 7.99,
+    price: 2000,
     description: 'Para DJs semi-profesionales',
     color: colors.primary,
     highlighted: true,
@@ -103,7 +103,7 @@ const PLANS: PlanData[] = [
     tier: 'business',
     name: 'Business',
     icon: '🏢',
-    price: 29.99,
+    price: 10000,
     description: 'Para locales y profesionales',
     color: '#8B5CF6',
     features: [
@@ -148,8 +148,8 @@ const PlanCard = ({
         <Text style={styles.priceFree}>Gratis</Text>
       ) : (
         <>
-          <Text style={styles.priceAmount}>€{plan.price.toFixed(2)}</Text>
-          <Text style={styles.pricePeriod}>/mes</Text>
+          <Text style={styles.priceAmount}>{plan.price.toLocaleString()}</Text>
+          <Text style={styles.pricePeriod}> dB/mes</Text>
         </>
       )}
     </View>

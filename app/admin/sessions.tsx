@@ -98,7 +98,7 @@ export default function SessionsPage() {
             peak: memberCount || 0,
             songs: songCount || 0,
             messages: msgCount || 0,
-            tips: `€${tipTotal.toFixed(2)}`,
+            tips: `${Math.round(tipTotal * 10)} dB`,
             duration: `${hours}h ${mins}m`,
             status: session.status || 'live',
             created: new Date(session.created_at).toLocaleString('es-ES'),
@@ -143,7 +143,7 @@ export default function SessionsPage() {
         <StatBox v={sessions.length} l="Total sesiones" c={colors.primary}/>
         <StatBox v={liveCount} l="En vivo" c="#22D3EE"/>
         <StatBox v={totalListeners} l="Listeners ahora" c="#FB923C"/>
-        <StatBox v={`€${totalTips.toFixed(2)}`} l="Tips total" c={colors.warning}/>
+        <StatBox v={`${Math.round(totalTips * 10)} dB`} l="dB total" c={colors.warning}/>
       </View>
 
       <View style={s.filters}>

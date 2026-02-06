@@ -91,7 +91,7 @@ export default function NotificationsScreen() {
           notifs.push({
             id: `tip-${tip.id}`,
             type: 'tip',
-            text: `${(tip.from_user as any)?.display_name || 'Alguien'} te dio volumen €${tip.amount}`,
+            text: `${(tip.from_user as any)?.display_name || 'Alguien'} te dio ${tip.amount} dB`,
             time: timeAgo(new Date(tip.created_at)),
             unread: false,
             icon: 'cash',

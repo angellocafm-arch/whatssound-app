@@ -29,8 +29,8 @@ const DEFAULT_METRICS = {
   songsQueued: 0,
   chatMessages: 0,
   reactions: 0,
-  tipsTotal: '€0',
-  tipsToday: '€0',
+  tipsTotal: '0 dB',
+  tipsToday: '0 dB',
   avgSessionDuration: '0m',
   peakListeners: 0,
   topGenre: '-',
@@ -59,7 +59,7 @@ const RECENT_SESSIONS = [
 const RECENT_USERS = [
   { name: 'María García', action: 'Se unió a Viernes Latino', time: 'hace 2m', type: 'join' },
   { name: 'Pablo Rodríguez', action: 'Pidió "Gasolina" — 18 votos', time: 'hace 5m', type: 'song' },
-  { name: 'Ana López ⭐', action: 'Envió propina de €5', time: 'hace 8m', type: 'tip' },
+  { name: 'Ana López ⭐', action: 'Envió 50 dB', time: 'hace 8m', type: 'tip' },
   { name: 'Carlos Martín', action: 'Nuevo registro (invitación de María)', time: 'hace 12m', type: 'register' },
   { name: 'Sofía Torres', action: 'Reaccionó 🔥 a "Pepas"', time: 'hace 15m', type: 'reaction' },
   { name: 'Diego Fernández', action: 'Creó grupo "Reggaeton Madrid"', time: 'hace 20m', type: 'group' },
@@ -69,7 +69,7 @@ const AI_INSIGHTS = [
   { text: '📈 El engagement ha subido un 34% respecto a la semana pasada. El pico fue el viernes con 128 listeners simultáneos.', time: 'hace 10m' },
   { text: '🎵 Reggaetón es el género más popular (42% de las sesiones). Sugerencia: promover DJs de reggaetón en Descubrir.', time: 'hace 25m' },
   { text: '⚠️ 3 usuarios reportaron latencia en el chat. Revisar WebSocket connections en la región EU-West.', time: 'hace 1h' },
-  { text: '💰 Las propinas aumentaron un 67% desde que se añadió el botón de propina rápida. Revenue proyectado: €2,400/mes.', time: 'hace 2h' },
+  { text: '🔊 Los decibelios intercambiados aumentaron un 67% desde que se añadió el botón de dar volumen. Total este mes: 24,000 dB.', time: 'hace 2h' },
 ];
 
 // ─── Stat Card ───────────────────────────────────────────
@@ -164,8 +164,8 @@ export default function AdminDashboard() {
           songsQueued: 0,
           chatMessages: msgCount || 0,
           reactions: 0,
-          tipsTotal: `€${totalTips.toFixed(2)}`,
-          tipsToday: `€${totalTips.toFixed(2)}`,
+          tipsTotal: `${Math.round(totalTips * 10)} dB`,
+          tipsToday: `${Math.round(totalTips * 10)} dB`,
           avgSessionDuration: '47m',
           peakListeners: activeMembers,
           topGenre: 'Reggaetón',

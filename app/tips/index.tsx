@@ -166,16 +166,16 @@ export default function TipsHistoryScreen() {
         {/* Balance card (only for DJs on received tab) */}
         {isDJ && tab === 'received' && (
           <View style={s.balanceCard}>
-            <Text style={s.balanceLabel}>Balance disponible</Text>
-            <Text style={s.balanceAmount}>€{balance.available.toFixed(2)}</Text>
+            <Text style={s.balanceLabel}>Decibelios recibidos</Text>
+            <Text style={s.balanceAmount}>{balance.available.toFixed(0)} dB</Text>
             <View style={s.balanceStats}>
               <View style={s.balanceStat}>
-                <Text style={s.balanceStatValue}>€{balance.thisMonth.toFixed(2)}</Text>
+                <Text style={s.balanceStatValue}>{balance.thisMonth.toFixed(0)} dB</Text>
                 <Text style={s.balanceStatLabel}>Este mes</Text>
               </View>
               {balance.pending > 0 && (
                 <View style={s.balanceStat}>
-                  <Text style={s.balanceStatValue}>€{balance.pending.toFixed(2)}</Text>
+                  <Text style={s.balanceStatValue}>{balance.pending.toFixed(0)} dB</Text>
                   <Text style={s.balanceStatLabel}>Pendiente</Text>
                 </View>
               )}
@@ -214,7 +214,7 @@ export default function TipsHistoryScreen() {
                 )}
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={s.tipAmount}>{tab === 'received' ? '+' : '-'}€{tip.amount}</Text>
+                <Text style={s.tipAmount}>{tab === 'received' ? '+' : '-'}{tip.amount} dB</Text>
                 <Text style={s.tipTime}>{tip.time}</Text>
               </View>
             </View>

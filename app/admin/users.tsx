@@ -84,7 +84,7 @@ export default function UsersPage() {
             joined: new Date(user.created_at).toLocaleDateString('es-ES'),
             sessions: sessionCount || 0,
             songs: songCount || 0,
-            tips: `€${tipTotal.toFixed(2)}`,
+            tips: `${Math.round(tipTotal * 10)} dB`,
             status: 'active',
             role,
           };

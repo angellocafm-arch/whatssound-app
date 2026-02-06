@@ -44,7 +44,7 @@ async function getDBContext(): Promise<string> {
       `Sesiones totales: ${sessions}`,
       `Canciones: ${songs}`,
       `Mensajes: ${msgs}`,
-      `Propinas: €${totalTips.toFixed(2)} (${tips?.length || 0} transacciones)`,
+      `Decibelios: ${Math.round(totalTips * 10)} dB (${tips?.length || 0} transacciones)`,
       `Sesiones activas: ${active?.map((s: { name: string; dj?: { dj_name?: string }; members?: unknown[] }) => `${s.name} (${s.dj?.dj_name}, ${s.members?.length || 0} miembros)`).join(', ') || 'ninguna'}`,
     ];
     return lines.join('\n');
