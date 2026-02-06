@@ -51,10 +51,10 @@ export default function PermissionsScreen() {
       </View>
 
       <View style={s.bottom}>
-        <Pressable style={s.continueBtn} onPress={() => router.replace('/(tabs)' as any)}>
+        <Pressable style={s.continueBtn} onPress={() => router.replace('/(tabs)/chats' as any)}>
           <Text style={s.continueText}>Empezar a usar WhatsSound 🎧</Text>
         </Pressable>
-        <Pressable onPress={() => router.replace('/(tabs)' as any)}>
+        <Pressable onPress={() => router.replace('/(tabs)/chats' as any)}>
           <Text style={s.skipText}>Saltar por ahora</Text>
         </Pressable>
       </View>
