@@ -18,6 +18,7 @@ import { useAuthStore } from '../src/stores/authStore';
 import { isDemoMode, setDemoMode, DEMO_USER, DEMO_DJ, getNeedsProfile } from '../src/lib/demo';
 import { useDeepLinking } from '../src/hooks/useDeepLinking';
 import { DebugOverlay } from '../src/components/ui/DebugOverlay';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import debugLog from '../src/lib/debugToast';
 import { initSentry, captureError } from '../src/lib/sentry';
 import { initPostHog } from '../src/lib/posthog';
@@ -168,8 +169,9 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
-      <View style={styles.appShell}>
-        <AuthGate>
+      <ErrorBoundary>
+        <View style={styles.appShell}>
+          <AuthGate>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -192,8 +194,9 @@ export default function RootLayout() {
           </Stack>
         </AuthGate>
         {/* Debug overlay - solo en modo pruebas */}
-        {!isDemoMode() && <DebugOverlay />}
-      </View>
+          {!isDemoMode() && <DebugOverlay />}
+        </View>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }
