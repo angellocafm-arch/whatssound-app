@@ -1,7 +1,8 @@
 /**
  * WhatsSound — Welcome Page
- * Carta de presentación con sistema de decibelios
- * Diseño responsive con animaciones
+ * Carta de presentación con diseño responsive
+ * Desktop: layout multi-columna
+ * Mobile: scroll vertical
  */
 
 import React, { useEffect, useState } from 'react';
@@ -13,6 +14,7 @@ import {
   ScrollView,
   Dimensions,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,12 +23,9 @@ import { typography } from '../src/theme/typography';
 import { spacing, borderRadius } from '../src/theme/spacing';
 import { setDemoMode, isDemoMode, DEMO_USER } from '../src/lib/demo';
 import { useAuthStore } from '../src/stores/authStore';
-import { DecibelCounter } from '../src/components/welcome/DecibelCounter';
-import { DecibelCalculator } from '../src/components/welcome/DecibelCalculator';
-import { PlanCard } from '../src/components/welcome/PlanCard';
-import { LiveActivityFeed } from '../src/components/welcome/LiveActivityFeed';
+import { NeonCard } from '../src/components/welcome/NeonCard';
 
-// Demo user para login automático en modo demo
+// Demo user
 const DEMO_AUTH_USER = {
   id: DEMO_USER.id,
   email: 'demo@whatssound.app',
@@ -56,111 +55,68 @@ const DEMO_PROFILE = {
   role: 'user',
 };
 
-const { width } = Dimensions.get('window');
-const isSmall = width < 380;
-
-// Stats simulados
-const LIVE_STATS = {
-  listeners: 1247,
-  dbToday: 45200,
-};
-
-// Features para oyentes
-const LISTENER_FEATURES = [
+// Features
+const FEATURES = [
+  { icon: 'headset', title: 'Sesiones en vivo', desc: 'Escucha música en tiempo real' },
   { icon: 'musical-notes', title: 'Pide canciones', desc: 'Elige qué suena' },
-  { icon: 'thumbs-up', title: 'Vota favoritas', desc: 'Sube las mejores' },
-  { icon: 'chatbubbles', title: 'Chat en vivo', desc: 'Comenta con otros' },
-  { icon: 'volume-high', title: 'Gana dB', desc: '1 dB por minuto' },
+  { icon: 'chatbubbles', title: 'Chat en directo', desc: 'Comenta con otros' },
+  { icon: 'volume-high', title: 'Gana decibelios', desc: '1 dB por minuto' },
+  { icon: 'trophy', title: 'Golden Boosts', desc: 'Reconoce a tus DJs' },
+  { icon: 'star', title: 'Sube de nivel', desc: 'Desbloquea badges' },
 ];
 
-// Features para DJs
-const DJ_FEATURES = [
-  { icon: 'radio', title: 'Crea sesiones', desc: 'Tu escenario digital' },
-  { icon: 'heart', title: 'Recibe dB', desc: 'Aplausos de tus fans' },
-  { icon: 'trophy', title: 'Golden Boosts', desc: 'Reconocimiento especial' },
-  { icon: 'star', title: 'Badges', desc: 'Sube de nivel' },
-];
-
-// Planes
+// Plans
 const PLANS = [
   {
-    name: 'DJ Social',
+    name: 'Gratis',
     icon: '🎵',
-    price: 'Gratis',
-    priceNote: 'Para siempre',
-    description: 'Para empezar',
+    price: '0 dB',
     color: colors.textMuted,
-    features: [
-      { text: 'Sesiones ilimitadas', included: true },
-      { text: 'Hasta 20 oyentes', included: true },
-      { text: 'Cola con votos', included: true },
-      { text: 'Recibir dB', included: true },
-    ],
+    features: ['Sesiones ilimitadas', '20 oyentes', 'Chat en vivo', 'Recibir dB'],
   },
   {
     name: 'Creator',
     icon: '⭐',
-    price: '500 dB',
-    priceNote: '~8h escuchando/mes',
-    description: 'Crece tu audiencia',
+    price: '500 dB/mes',
     color: '#F59E0B',
-    features: [
-      { text: 'Hasta 100 oyentes', included: true },
-      { text: 'Notificaciones push', included: true },
-      { text: 'Programar sesiones', included: true },
-      { text: 'Badge verificado ⭐', included: true },
-    ],
+    features: ['100 oyentes', 'Push notifications', 'Programar sesiones', 'Badge ⭐'],
   },
   {
     name: 'Pro',
     icon: '🎧',
-    price: '2,000 dB',
-    priceNote: '~33h escuchando/mes',
-    description: 'Para profesionales',
+    price: '2,000 dB/mes',
     color: colors.primary,
-    highlighted: true,
-    badge: 'POPULAR',
-    features: [
-      { text: 'Oyentes ilimitados', included: true },
-      { text: 'Analytics completo', included: true },
-      { text: 'Prioridad Descubrir', included: true },
-      { text: 'Co-DJs en sesión', included: true },
-    ],
+    popular: true,
+    features: ['∞ oyentes', 'Analytics completo', 'Prioridad Descubrir', 'Co-DJs'],
   },
   {
     name: 'Business',
     icon: '🏢',
-    price: '10,000 dB',
-    priceNote: 'Para locales',
-    description: 'Escala tu negocio',
+    price: '10,000 dB/mes',
     color: '#8B5CF6',
-    features: [
-      { text: 'Multi-sesión', included: true },
-      { text: 'Branding propio', included: true },
-      { text: 'API integración', included: true },
-      { text: 'Equipo multi-admin', included: true },
-    ],
+    features: ['Multi-sesión', 'Branding propio', 'API integración', 'Multi-admin'],
   },
 ];
 
 export default function WelcomePage() {
   const router = useRouter();
   const { code, from, demo } = useLocalSearchParams<{ code?: string; from?: string; demo?: string }>();
-  const [stats, setStats] = useState(LIVE_STATS);
+  const { width } = useWindowDimensions();
+  
+  const isDesktop = width >= 1024;
+  const isTablet = width >= 768 && width < 1024;
+  
+  const [dbCount, setDbCount] = useState(247);
+  const [listeners, setListeners] = useState(1247);
 
   useEffect(() => {
-    if (demo !== undefined) {
-      setDemoMode(demo !== 'false');
-    }
-
-    // Simulate live stats updates
+    if (demo !== undefined) setDemoMode(demo !== 'false');
+    
+    // Animate counters
     const interval = setInterval(() => {
-      setStats(prev => ({
-        listeners: prev.listeners + Math.floor(Math.random() * 3) - 1,
-        dbToday: prev.dbToday + Math.floor(Math.random() * 10),
-      }));
-    }, 5000);
-
+      setDbCount(v => v + 1);
+      setListeners(v => v + Math.floor(Math.random() * 3) - 1);
+    }, 2000);
     return () => clearInterval(interval);
   }, [demo]);
 
@@ -168,7 +124,6 @@ export default function WelcomePage() {
     if (code) {
       router.push(`/join/${code}`);
     } else if (isDemoMode()) {
-      // En modo demo, loguear usuario demo y navegar a tabs
       useAuthStore.setState({
         user: DEMO_AUTH_USER,
         session: DEMO_SESSION,
@@ -183,7 +138,6 @@ export default function WelcomePage() {
   };
 
   const handleExplore = () => {
-    // En modo demo, también loguear para explorar
     if (isDemoMode()) {
       useAuthStore.setState({
         user: DEMO_AUTH_USER,
@@ -199,186 +153,226 @@ export default function WelcomePage() {
   return (
     <View style={s.container}>
       <ScrollView 
-        contentContainerStyle={s.scrollContent}
+        contentContainerStyle={[
+          s.scrollContent,
+          isDesktop && s.scrollContentDesktop,
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* HERO */}
-        <View style={s.hero}>
-          <View style={s.logoBubble}>
-            <Ionicons name="headset" size={isSmall ? 40 : 56} color="#fff" />
-          </View>
-          <Text style={s.title}>
-            <Text style={s.titleWhats}>Whats</Text>
-            <Text style={s.titleSound}>Sound</Text>
-          </Text>
-          <Text style={s.tagline}>Gana escuchando. Comparte vibrando.</Text>
-
-          {/* Live Stats */}
-          <View style={s.statsRow}>
-            <View style={s.statItem}>
-              <View style={s.statDot} />
-              <Text style={s.statValue}>{stats.listeners.toLocaleString()}</Text>
-              <Text style={s.statLabel}>escuchando</Text>
+        {/* ══════════════════════════════════════════════════════════
+            HERO SECTION
+            ══════════════════════════════════════════════════════════ */}
+        <View style={[s.hero, isDesktop && s.heroDesktop]}>
+          <View style={s.heroContent}>
+            <View style={s.logoBubble}>
+              <Ionicons name="headset" size={isDesktop ? 72 : 56} color="#fff" />
             </View>
-            <View style={s.statDivider} />
-            <View style={s.statItem}>
-              <Ionicons name="volume-high" size={16} color={colors.primary} />
-              <Text style={s.statValue}>{(stats.dbToday / 1000).toFixed(1)}K</Text>
-              <Text style={s.statLabel}>dB hoy</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Invitación personalizada */}
-        {from && (
-          <View style={s.inviteCard}>
-            <Ionicons name="person-add" size={24} color={colors.primary} />
-            <Text style={s.inviteText}>
-              <Text style={s.inviteName}>{from}</Text> te ha invitado
+            <Text style={[s.title, isDesktop && s.titleDesktop]}>
+              <Text style={s.titleWhats}>Whats</Text>
+              <Text style={s.titleSound}>Sound</Text>
             </Text>
-          </View>
-        )}
+            <Text style={[s.tagline, isDesktop && s.taglineDesktop]}>
+              Gana escuchando. Comparte vibrando.
+            </Text>
+            
+            {/* Live stats */}
+            <View style={s.statsRow}>
+              <View style={s.statItem}>
+                <View style={s.liveDot} />
+                <Text style={s.statValue}>{listeners.toLocaleString()}</Text>
+                <Text style={s.statLabel}>escuchando</Text>
+              </View>
+              <View style={s.statDivider} />
+              <View style={s.statItem}>
+                <Ionicons name="volume-high" size={16} color={colors.primary} />
+                <Text style={s.statValue}>45K</Text>
+                <Text style={s.statLabel}>dB hoy</Text>
+              </View>
+            </View>
 
-        {/* SISTEMA DE DECIBELIOS */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>El sonido tiene valor</Text>
-          <Text style={s.sectionSubtitle}>1 minuto escuchando = 1 decibelio</Text>
-          
-          <DecibelCounter />
-
-          <View style={s.decibelUses}>
-            <View style={s.decibelUse}>
-              <View style={[s.decibelIcon, { backgroundColor: colors.primary + '20' }]}>
-                <Ionicons name="headset" size={20} color={colors.primary} />
+            {/* CTA on hero for desktop */}
+            {isDesktop && (
+              <View style={s.heroCtas}>
+                <TouchableOpacity style={s.primaryBtn} onPress={handleStart}>
+                  <Text style={s.primaryBtnText}>Empieza a ganar</Text>
+                  <Ionicons name="arrow-forward" size={20} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={s.secondaryBtn} onPress={handleExplore}>
+                  <Text style={s.secondaryBtnText}>Ver sesiones en vivo</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={s.decibelUseText}>Escucha</Text>
-            </View>
-            <Ionicons name="arrow-forward" size={20} color={colors.textMuted} />
-            <View style={s.decibelUse}>
-              <View style={[s.decibelIcon, { backgroundColor: colors.warning + '20' }]}>
-                <Ionicons name="heart" size={20} color={colors.warning} />
-              </View>
-              <Text style={s.decibelUseText}>Acumula</Text>
-            </View>
-            <Ionicons name="arrow-forward" size={20} color={colors.textMuted} />
-            <View style={s.decibelUse}>
-              <View style={[s.decibelIcon, { backgroundColor: '#FFD700' + '20' }]}>
-                <Ionicons name="gift" size={20} color="#FFD700" />
-              </View>
-              <Text style={s.decibelUseText}>Desbloquea</Text>
-            </View>
+            )}
           </View>
         </View>
 
-        {/* CALCULADORA */}
-        <View style={s.section}>
-          <DecibelCalculator />
-        </View>
+        {/* ══════════════════════════════════════════════════════════
+            DECIBEL SYSTEM
+            ══════════════════════════════════════════════════════════ */}
+        <View style={[s.section, isDesktop && s.sectionDesktop]}>
+          <Text style={[s.sectionTitle, isDesktop && s.sectionTitleDesktop]}>
+            El sonido tiene valor
+          </Text>
+          <Text style={s.sectionSubtitle}>
+            1 minuto escuchando = 1 decibelio
+          </Text>
 
-        {/* PARA OYENTES */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>🎵 Para Oyentes</Text>
-          <Text style={s.sectionSubtitle}>La música que tú eliges</Text>
-          
-          <View style={s.featuresGrid}>
-            {LISTENER_FEATURES.map((f, idx) => (
-              <View key={idx} style={s.featureCard}>
-                <View style={s.featureIcon}>
-                  <Ionicons name={f.icon as any} size={22} color={colors.primary} />
+          <View style={[s.decibelRow, isDesktop && s.decibelRowDesktop]}>
+            {/* Counter */}
+            <NeonCard style={s.decibelCard} glowColor={colors.primary} intensity="high">
+              <View style={s.decibelCardInner}>
+                <Ionicons name="volume-high" size={32} color={colors.primary} />
+                <Text style={s.decibelValue}>{dbCount}</Text>
+                <Text style={s.decibelUnit}>dB</Text>
+                <Text style={s.decibelHint}>+1 cada minuto</Text>
+              </View>
+            </NeonCard>
+
+            {/* How it works */}
+            <View style={[s.decibelSteps, isDesktop && s.decibelStepsDesktop]}>
+              <NeonCard style={s.stepCard} glowColor={colors.primary}>
+                <View style={s.stepInner}>
+                  <View style={[s.stepIcon, { backgroundColor: colors.primary + '20' }]}>
+                    <Ionicons name="headset" size={24} color={colors.primary} />
+                  </View>
+                  <Text style={s.stepTitle}>Escucha</Text>
+                  <Text style={s.stepDesc}>Música en vivo</Text>
                 </View>
-                <Text style={s.featureTitle}>{f.title}</Text>
-                <Text style={s.featureDesc}>{f.desc}</Text>
-              </View>
+              </NeonCard>
+              <Ionicons name="arrow-forward" size={20} color={colors.textMuted} />
+              <NeonCard style={s.stepCard} glowColor="#F59E0B">
+                <View style={s.stepInner}>
+                  <View style={[s.stepIcon, { backgroundColor: '#F59E0B20' }]}>
+                    <Ionicons name="trending-up" size={24} color="#F59E0B" />
+                  </View>
+                  <Text style={s.stepTitle}>Acumula</Text>
+                  <Text style={s.stepDesc}>Decibelios</Text>
+                </View>
+              </NeonCard>
+              <Ionicons name="arrow-forward" size={20} color={colors.textMuted} />
+              <NeonCard style={s.stepCard} glowColor="#FFD700">
+                <View style={s.stepInner}>
+                  <View style={[s.stepIcon, { backgroundColor: '#FFD70020' }]}>
+                    <Ionicons name="gift" size={24} color="#FFD700" />
+                  </View>
+                  <Text style={s.stepTitle}>Desbloquea</Text>
+                  <Text style={s.stepDesc}>Todo gratis</Text>
+                </View>
+              </NeonCard>
+            </View>
+          </View>
+        </View>
+
+        {/* ══════════════════════════════════════════════════════════
+            FEATURES GRID
+            ══════════════════════════════════════════════════════════ */}
+        <View style={[s.section, isDesktop && s.sectionDesktop]}>
+          <Text style={[s.sectionTitle, isDesktop && s.sectionTitleDesktop]}>
+            Todo lo que puedes hacer
+          </Text>
+          
+          <View style={[s.featuresGrid, isDesktop && s.featuresGridDesktop]}>
+            {FEATURES.map((f, i) => (
+              <NeonCard 
+                key={i} 
+                style={[s.featureCard, isDesktop && s.featureCardDesktop]}
+                glowColor={colors.primary}
+              >
+                <View style={s.featureInner}>
+                  <View style={s.featureIcon}>
+                    <Ionicons name={f.icon as any} size={24} color={colors.primary} />
+                  </View>
+                  <Text style={s.featureTitle}>{f.title}</Text>
+                  <Text style={s.featureDesc}>{f.desc}</Text>
+                </View>
+              </NeonCard>
             ))}
           </View>
         </View>
 
-        {/* PARA DJs */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>🎧 Para DJs</Text>
-          <Text style={s.sectionSubtitle}>Tu escenario digital</Text>
-          
-          <View style={s.featuresGrid}>
-            {DJ_FEATURES.map((f, idx) => (
-              <View key={idx} style={s.featureCard}>
-                <View style={s.featureIcon}>
-                  <Ionicons name={f.icon as any} size={22} color={colors.primary} />
+        {/* ══════════════════════════════════════════════════════════
+            PLANS
+            ══════════════════════════════════════════════════════════ */}
+        <View style={[s.section, isDesktop && s.sectionDesktop]}>
+          <Text style={[s.sectionTitle, isDesktop && s.sectionTitleDesktop]}>
+            Un plan para cada momento
+          </Text>
+          <Text style={s.sectionSubtitle}>
+            Todo se paga con decibelios que ganas escuchando
+          </Text>
+
+          <View style={[s.plansGrid, isDesktop && s.plansGridDesktop]}>
+            {PLANS.map((plan, i) => (
+              <NeonCard 
+                key={i} 
+                style={[s.planCard, plan.popular && s.planCardPopular]}
+                glowColor={plan.color}
+                intensity={plan.popular ? 'high' : 'medium'}
+              >
+                <View style={s.planInner}>
+                  {plan.popular && (
+                    <View style={[s.planBadge, { backgroundColor: plan.color }]}>
+                      <Text style={s.planBadgeText}>POPULAR</Text>
+                    </View>
+                  )}
+                  <Text style={s.planIcon}>{plan.icon}</Text>
+                  <Text style={s.planName}>{plan.name}</Text>
+                  <Text style={[s.planPrice, { color: plan.color }]}>{plan.price}</Text>
+                  <View style={s.planFeatures}>
+                    {plan.features.map((f, j) => (
+                      <View key={j} style={s.planFeatureRow}>
+                        <Ionicons name="checkmark" size={16} color={plan.color} />
+                        <Text style={s.planFeatureText}>{f}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-                <Text style={s.featureTitle}>{f.title}</Text>
-                <Text style={s.featureDesc}>{f.desc}</Text>
-              </View>
+              </NeonCard>
             ))}
           </View>
-        </View>
 
-        {/* PLANES */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Un plan para cada momento</Text>
-          <Text style={s.sectionSubtitle}>Todo se paga con decibelios</Text>
-        </View>
-
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.plansScroll}
-        >
-          {PLANS.map((plan, idx) => (
-            <PlanCard
-              key={idx}
-              name={plan.name}
-              icon={plan.icon}
-              price={plan.price}
-              priceNote={plan.priceNote}
-              description={plan.description}
-              color={plan.color}
-              features={plan.features}
-              highlighted={plan.highlighted}
-              badge={plan.badge}
-            />
-          ))}
-        </ScrollView>
-
-        <Text style={s.plansHint}>
-          💡 Escucha música y desbloquea todo
-        </Text>
-
-        {/* ACTIVIDAD EN VIVO */}
-        <View style={s.section}>
-          <LiveActivityFeed />
-        </View>
-
-        {/* TESTIMONIAL */}
-        <View style={s.section}>
-          <View style={s.testimonialCard}>
-            <Text style={s.testimonialQuote}>
-              "Llevo 2 meses y ya tengo suficientes dB para el plan Pro. Solo escuchando música mientras trabajo."
-            </Text>
-            <Text style={s.testimonialAuthor}>— @maria_g ⭐</Text>
-          </View>
-        </View>
-
-        {/* FOOTER MESSAGE */}
-        <View style={s.section}>
-          <Text style={s.footerMessage}>Todo esto es GRATIS</Text>
-          <Text style={s.footerSubmessage}>
-            Sin tarjeta. Sin compromisos. Solo música.
+          <Text style={s.plansHint}>
+            💡 Escucha música y desbloquea todo sin pagar
           </Text>
+        </View>
+
+        {/* ══════════════════════════════════════════════════════════
+            TESTIMONIAL
+            ══════════════════════════════════════════════════════════ */}
+        <View style={[s.section, isDesktop && s.sectionDesktop]}>
+          <NeonCard style={s.testimonialCard} glowColor={colors.primary}>
+            <View style={s.testimonialInner}>
+              <Text style={s.testimonialQuote}>
+                "Llevo 2 meses y ya tengo suficientes dB para el plan Pro. 
+                Solo escuchando música mientras trabajo."
+              </Text>
+              <Text style={s.testimonialAuthor}>— @maria_g ⭐</Text>
+            </View>
+          </NeonCard>
+        </View>
+
+        {/* ══════════════════════════════════════════════════════════
+            FINAL CTA
+            ══════════════════════════════════════════════════════════ */}
+        <View style={[s.section, s.finalSection]}>
+          <Text style={s.finalTitle}>Todo esto es GRATIS</Text>
+          <Text style={s.finalSubtitle}>Sin tarjeta. Sin compromisos. Solo música.</Text>
         </View>
       </ScrollView>
 
-      {/* CTAs */}
-      <View style={s.ctas}>
-        <TouchableOpacity style={s.primaryBtn} onPress={handleStart}>
-          <Text style={s.primaryBtnText}>
-            {code ? 'Aceptar invitación' : 'Empieza a ganar'}
-          </Text>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={s.secondaryBtn} onPress={handleExplore}>
-          <Text style={s.secondaryBtnText}>Ver sesiones en vivo</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Fixed CTAs (mobile only) */}
+      {!isDesktop && (
+        <View style={s.fixedCtas}>
+          <TouchableOpacity style={s.primaryBtn} onPress={handleStart}>
+            <Text style={s.primaryBtnText}>
+              {code ? 'Aceptar invitación' : 'Empieza a ganar'}
+            </Text>
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.secondaryBtn} onPress={handleExplore}>
+            <Text style={s.secondaryBtnText}>Ver sesiones en vivo</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -391,6 +385,12 @@ const s = StyleSheet.create({
   scrollContent: {
     paddingBottom: 140,
   },
+  scrollContentDesktop: {
+    paddingBottom: 60,
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
 
   // Hero
   hero: {
@@ -398,9 +398,16 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
   },
+  heroDesktop: {
+    paddingTop: 80,
+    paddingBottom: 40,
+  },
+  heroContent: {
+    alignItems: 'center',
+  },
   logoBubble: {
-    width: isSmall ? 80 : 100,
-    height: isSmall ? 80 : 100,
+    width: 100,
+    height: 100,
     borderRadius: 50,
     backgroundColor: colors.primary,
     justifyContent: 'center',
@@ -410,19 +417,24 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
-    elevation: 8,
   },
   title: {
-    fontSize: isSmall ? 32 : 40,
+    fontSize: 40,
     fontWeight: '800',
+  },
+  titleDesktop: {
+    fontSize: 56,
   },
   titleWhats: { color: colors.textPrimary },
   titleSound: { color: colors.primary },
   tagline: {
     ...typography.body,
     color: colors.textMuted,
-    fontSize: isSmall ? 16 : 18,
+    fontSize: 18,
     marginTop: spacing.xs,
+  },
+  taglineDesktop: {
+    fontSize: 22,
   },
   statsRow: {
     flexDirection: 'row',
@@ -431,11 +443,11 @@ const s = StyleSheet.create({
     gap: spacing.lg,
   },
   statItem: {
-    alignItems: 'center',
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
-  statDot: {
+  liveDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -448,33 +460,16 @@ const s = StyleSheet.create({
   statLabel: {
     ...typography.caption,
     color: colors.textMuted,
-    marginLeft: 2,
   },
   statDivider: {
     width: 1,
     height: 20,
     backgroundColor: colors.border,
   },
-
-  // Invite
-  inviteCard: {
-    flexDirection: 'row',
+  heroCtas: {
+    marginTop: spacing.xl,
     alignItems: 'center',
-    backgroundColor: colors.primary + '15',
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
     gap: spacing.sm,
-  },
-  inviteText: {
-    ...typography.body,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  inviteName: {
-    ...typography.bodyBold,
-    color: colors.primary,
   },
 
   // Section
@@ -482,12 +477,19 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing['2xl'],
   },
+  sectionDesktop: {
+    paddingTop: 60,
+    paddingHorizontal: 40,
+  },
   sectionTitle: {
     ...typography.h2,
     color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
-    fontSize: isSmall ? 22 : 26,
+    fontSize: 26,
+  },
+  sectionTitleDesktop: {
+    fontSize: 36,
   },
   sectionSubtitle: {
     ...typography.body,
@@ -496,50 +498,102 @@ const s = StyleSheet.create({
     marginBottom: spacing.lg,
   },
 
-  // Decibel uses
-  decibelUses: {
+  // Decibel
+  decibelRow: {
+    gap: spacing.lg,
+  },
+  decibelRowDesktop: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  decibelUse: {
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  decibelIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  decibelUseText: {
+  decibelCard: {
+    alignSelf: 'center',
+    minWidth: 200,
+  },
+  decibelCardInner: {
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  decibelValue: {
+    ...typography.h1,
+    fontSize: 64,
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  decibelUnit: {
+    ...typography.h2,
+    color: colors.primary,
+    opacity: 0.8,
+  },
+  decibelHint: {
     ...typography.caption,
     color: colors.textMuted,
-    fontSize: 11,
+    marginTop: spacing.xs,
+  },
+  decibelSteps: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    flexWrap: 'wrap',
+  },
+  decibelStepsDesktop: {
+    marginTop: 0,
+    marginLeft: spacing.xl,
+  },
+  stepCard: {
+    width: 100,
+  },
+  stepInner: {
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  stepIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  stepTitle: {
+    ...typography.captionBold,
+    color: colors.textPrimary,
+    fontSize: 12,
+  },
+  stepDesc: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 10,
   },
 
   // Features
   featuresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: spacing.md,
     justifyContent: 'center',
   },
+  featuresGridDesktop: {
+    gap: spacing.lg,
+  },
   featureCard: {
-    width: (width - spacing.lg * 2 - spacing.sm) / 2,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
+    width: '45%',
+    maxWidth: 180,
+  },
+  featureCardDesktop: {
+    width: 180,
+    maxWidth: 200,
+  },
+  featureInner: {
     padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
@@ -549,7 +603,6 @@ const s = StyleSheet.create({
     ...typography.bodyBold,
     color: colors.textPrimary,
     fontSize: 14,
-    marginBottom: 2,
   },
   featureDesc: {
     ...typography.caption,
@@ -558,46 +611,111 @@ const s = StyleSheet.create({
   },
 
   // Plans
-  plansScroll: {
-    paddingHorizontal: spacing.lg,
+  plansGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.md,
+    justifyContent: 'center',
+  },
+  plansGridDesktop: {
+    gap: spacing.lg,
+    flexWrap: 'nowrap',
+  },
+  planCard: {
+    width: '45%',
+    maxWidth: 200,
+    minWidth: 150,
+  },
+  planCardPopular: {
+    transform: [{ scale: 1.02 }],
+  },
+  planInner: {
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  planBadge: {
+    position: 'absolute',
+    top: -10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  planBadgeText: {
+    ...typography.captionBold,
+    color: '#fff',
+    fontSize: 9,
+  },
+  planIcon: {
+    fontSize: 32,
+    marginBottom: spacing.xs,
+  },
+  planName: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    fontSize: 16,
+  },
+  planPrice: {
+    ...typography.h3,
+    fontSize: 18,
+    fontWeight: '800',
+    marginVertical: spacing.xs,
+  },
+  planFeatures: {
+    width: '100%',
+    gap: 4,
+    marginTop: spacing.sm,
+  },
+  planFeatureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  planFeatureText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 11,
   },
   plansHint: {
     ...typography.body,
     color: colors.primary,
     textAlign: 'center',
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
   },
 
   // Testimonial
   testimonialCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.primary + '20',
+    maxWidth: 500,
+    alignSelf: 'center',
+  },
+  testimonialInner: {
+    padding: spacing.xl,
   },
   testimonialQuote: {
     ...typography.body,
     color: colors.textPrimary,
     fontStyle: 'italic',
-    lineHeight: 24,
-    marginBottom: spacing.md,
+    lineHeight: 26,
+    textAlign: 'center',
   },
   testimonialAuthor: {
     ...typography.captionBold,
     color: colors.primary,
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
 
-  // Footer message
-  footerMessage: {
-    ...typography.h2,
-    color: colors.primary,
-    textAlign: 'center',
-    fontSize: 28,
+  // Final
+  finalSection: {
+    alignItems: 'center',
+    paddingBottom: spacing.xl,
   },
-  footerSubmessage: {
+  finalTitle: {
+    ...typography.h1,
+    color: colors.primary,
+    fontSize: 32,
+    textAlign: 'center',
+  },
+  finalSubtitle: {
     ...typography.body,
     color: colors.textMuted,
     textAlign: 'center',
@@ -605,7 +723,7 @@ const s = StyleSheet.create({
   },
 
   // CTAs
-  ctas: {
+  fixedCtas: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -623,6 +741,7 @@ const s = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: colors.primary,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
     borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
   },
