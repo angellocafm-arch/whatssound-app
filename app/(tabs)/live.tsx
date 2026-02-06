@@ -259,13 +259,21 @@ export default function LiveScreen() {
             {sessions.length} sesiones · {totalListeners} escuchando
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.createBtn}
-          onPress={() => router.push('/session/create')}
-        >
-          <Ionicons name="add" size={20} color={colors.textOnPrimary} />
-          <Text style={styles.createText}>Crear</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <TouchableOpacity
+            style={[styles.createBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+            onPress={() => router.push('/session/schedule')}
+          >
+            <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.createBtn}
+            onPress={() => router.push('/session/create')}
+          >
+            <Ionicons name="add" size={20} color={colors.textOnPrimary} />
+            <Text style={styles.createText}>Crear</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filters */}

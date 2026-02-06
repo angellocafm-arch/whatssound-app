@@ -346,7 +346,10 @@ export default function SessionScreen() {
           <Text style={s.dbEarnedText}>+{earnedThisSession} dB</Text>
         </View>
       )}
-      <TouchableOpacity onPress={() => router.push(`/session/share-qr?sid=${id}`)} style={{padding:spacing.xs, marginLeft:spacing.xs}}>
+      <TouchableOpacity onPress={() => router.push(`/session/invite?sid=${id}`)} style={{padding:spacing.xs, marginLeft:spacing.xs}}>
+        <Ionicons name="person-add-outline" size={22} color={colors.textPrimary} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => router.push(`/session/share-qr?sid=${id}`)} style={{padding:spacing.xs}}>
         <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push(`/session/stats?sid=${id}`)} style={{padding:spacing.xs}}>
