@@ -212,17 +212,7 @@ const styles = StyleSheet.create({
   appShell: {
     flex: 1,
     backgroundColor: colors.background,
-    ...(Platform.OS === 'web'
-      ? {
-          maxWidth: 420,
-          width: '100%',
-          alignSelf: 'center' as const,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.3,
-          shadowRadius: 20,
-        }
-      : {}),
+    // Responsive: sin maxWidth fijo para adaptarse a todos los tamaños
   },
   loading: {
     flex: 1,
