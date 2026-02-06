@@ -346,7 +346,12 @@ export default function SessionScreen() {
           <Text style={s.dbEarnedText}>+{earnedThisSession} dB</Text>
         </View>
       )}
-      <TouchableOpacity onPress={() => router.push(`/session/invite?sid=${id}`)} style={{padding:spacing.xs, marginLeft:spacing.xs}}>
+      {isDJ && (
+        <TouchableOpacity onPress={() => router.push(`/session/dj-panel?sid=${id}`)} style={{padding:spacing.xs, marginLeft:spacing.xs}}>
+          <Ionicons name="settings-outline" size={22} color={colors.primary} />
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity onPress={() => router.push(`/session/invite?sid=${id}`)} style={{padding:spacing.xs, marginLeft: isDJ ? 0 : spacing.xs}}>
         <Ionicons name="person-add-outline" size={22} color={colors.textPrimary} />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push(`/session/share-qr?sid=${id}`)} style={{padding:spacing.xs}}>
@@ -522,7 +527,7 @@ export default function SessionScreen() {
           const v = voted.has(item.id);
           const medal = i<3 ? ['🥇','🥈','🥉'][i] : null;
           return (
-            <View style={s.qItem}>
+            <TouchableOpacity style={s.qItem} onPress={() => router.push(`/session/song-detail?sid=${id}&songId=${item.id}`)} activeOpacity={0.7}>
               {medal ? <Text style={{fontSize:20,width:32,textAlign:'center'}}>{medal}</Text> : <Text style={s.qNum}>{i+1}</Text>}
               {item.art ? (
                 <Image source={{ uri: item.art }} style={s.qArt} />
@@ -539,7 +544,7 @@ export default function SessionScreen() {
                 <Ionicons name={v?'arrow-up-circle':'arrow-up-circle-outline'} size={26} color={v?colors.primary:colors.textMuted}/>
                 <Text style={[s.qVoteN,v&&{color:colors.primary}]}>{item.votes+(v?1:0)}</Text>
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           );
         }}
       />

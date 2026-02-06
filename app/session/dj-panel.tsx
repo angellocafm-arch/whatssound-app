@@ -379,7 +379,7 @@ export default function DJPanelScreen() {
       {/* ── Quick Actions ── */}
       <Text style={styles.sectionTitle}>⚡ Acciones rápidas</Text>
       <View style={styles.actionsGrid}>
-        <TouchableOpacity style={styles.actionCard}>
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/session/announce')}>
           <View style={[styles.actionIconBg, { backgroundColor: colors.accent + '20' }]}>
             <Ionicons name="megaphone" size={22} color={colors.accent} />
           </View>
@@ -427,7 +427,7 @@ export default function DJPanelScreen() {
       </View>
 
       {/* ── End Session ── */}
-      <TouchableOpacity style={styles.endBtn}>
+      <TouchableOpacity style={styles.endBtn} onPress={() => router.push('/session/rate')}>
         <Ionicons name="stop-circle" size={18} color={colors.error} />
         <Text style={styles.endText}>Finalizar sesión</Text>
       </TouchableOpacity>

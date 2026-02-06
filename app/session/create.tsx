@@ -216,6 +216,13 @@ export default function CreateSessionScreen() {
             <Text style={s.createText}>Crear sesión 🎧</Text>
           )}
         </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[s.createBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, marginTop: spacing.sm }]}
+          onPress={() => router.push('/session/announce')}
+        >
+          <Text style={[s.createText, { color: colors.textPrimary }]}>📢 Anunciar primero</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
