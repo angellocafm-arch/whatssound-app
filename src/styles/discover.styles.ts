@@ -6,6 +6,8 @@ import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { spacing, borderRadius } from '../theme/spacing';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH * 0.42;
+
 export 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
