@@ -290,7 +290,17 @@ export default function DiscoverScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <Text style={styles.title}>Descubrir</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.base, paddingTop: spacing.md }}>
+        <Text style={styles.title}>Descubrir</Text>
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <TouchableOpacity onPress={() => router.push('/favorites')} style={{ padding: spacing.xs }}>
+            <Ionicons name="heart-outline" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/history')} style={{ padding: spacing.xs }}>
+            <Ionicons name="time-outline" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Search bar */}
       <View style={styles.searchBar}>

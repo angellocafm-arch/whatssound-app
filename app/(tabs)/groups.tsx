@@ -135,8 +135,11 @@ export default function GroupsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Grupos</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerBtn}>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/search')}>
             <Ionicons name="search" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/scan')}>
+            <Ionicons name="qr-code-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/group/create' as any)}>
             <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
