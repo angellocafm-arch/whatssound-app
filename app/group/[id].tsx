@@ -293,7 +293,7 @@ export default function GroupChatScreen() {
           <Text style={styles.headerName} numberOfLines={1}>{groupName}</Text>
           <Text style={styles.headerMembers}>{memberCount} miembros</Text>
         </View>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push(`/group/info?gid=${id}`)}>
           <Ionicons name="ellipsis-vertical" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>

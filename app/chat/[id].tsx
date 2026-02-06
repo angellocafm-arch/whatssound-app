@@ -372,11 +372,11 @@ export default function ChatScreen() {
         </View>
 
         <View style={s.headerActions}>
-          <TouchableOpacity style={s.headerButton} activeOpacity={0.7}>
-            <Ionicons name="call" size={22} color={colors.textSecondary} />
+          <TouchableOpacity style={s.headerButton} activeOpacity={0.7} onPress={() => router.push(`/chat/media?cid=${id}`)}>
+            <Ionicons name="images" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={s.headerButton} activeOpacity={0.7}>
-            <Ionicons name="videocam" size={22} color={colors.textSecondary} />
+          <TouchableOpacity style={s.headerButton} activeOpacity={0.7} onPress={() => router.push(`/profile/${contact.id}`)}>
+            <Ionicons name="person" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
