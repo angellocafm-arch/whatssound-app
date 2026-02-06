@@ -104,11 +104,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
     
     if (isDemoMode()) {
-      // MODO INVERSORES: bypass auth, usuario demo
+      // MODO INVERSORES: NO loguear automáticamente
+      // El usuario verá welcome primero, y al hacer click en "Empieza a ganar"
+      // se logueará el usuario demo (ver welcome.tsx)
       useAuthStore.setState({
-        user: DEMO_AUTH_USER,
-        session: DEMO_SESSION,
-        profile: DEMO_PROFILE,
+        user: null,
+        session: null,
+        profile: null,
         initialized: true,
         loading: false,
       });
@@ -133,7 +135,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isDemoMode()) return; // No routing en modo demo
     if (!initialized) return;
 
     const inAuthGroup = segments[0] === '(auth)';

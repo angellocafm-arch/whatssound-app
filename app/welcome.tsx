@@ -19,11 +19,42 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../src/theme/colors';
 import { typography } from '../src/theme/typography';
 import { spacing, borderRadius } from '../src/theme/spacing';
-import { setDemoMode } from '../src/lib/demo';
+import { setDemoMode, isDemoMode, DEMO_USER } from '../src/lib/demo';
+import { useAuthStore } from '../src/stores/authStore';
 import { DecibelCounter } from '../src/components/welcome/DecibelCounter';
 import { DecibelCalculator } from '../src/components/welcome/DecibelCalculator';
 import { PlanCard } from '../src/components/welcome/PlanCard';
 import { LiveActivityFeed } from '../src/components/welcome/LiveActivityFeed';
+
+// Demo user para login automático en modo demo
+const DEMO_AUTH_USER = {
+  id: DEMO_USER.id,
+  email: 'demo@whatssound.app',
+  app_metadata: {},
+  user_metadata: { display_name: DEMO_USER.display_name },
+  aud: 'authenticated',
+  created_at: '2024-01-15T10:00:00Z',
+} as any;
+
+const DEMO_SESSION = {
+  access_token: 'demo-token',
+  refresh_token: 'demo-refresh',
+  expires_at: Math.floor(Date.now() / 1000) + 86400,
+  user: DEMO_AUTH_USER,
+} as any;
+
+const DEMO_PROFILE = {
+  id: DEMO_USER.id,
+  username: DEMO_USER.username,
+  display_name: DEMO_USER.display_name,
+  bio: 'Aquí por la música 💃',
+  avatar_url: null,
+  is_dj: false,
+  is_verified: false,
+  dj_name: null,
+  genres: ['Reggaetón', 'Pop'],
+  role: 'user',
+};
 
 const { width } = Dimensions.get('window');
 const isSmall = width < 380;
@@ -136,12 +167,32 @@ export default function WelcomePage() {
   const handleStart = () => {
     if (code) {
       router.push(`/join/${code}`);
+    } else if (isDemoMode()) {
+      // En modo demo, loguear usuario demo y navegar a tabs
+      useAuthStore.setState({
+        user: DEMO_AUTH_USER,
+        session: DEMO_SESSION,
+        profile: DEMO_PROFILE,
+        initialized: true,
+        loading: false,
+      });
+      router.replace('/(tabs)');
     } else {
       router.push('/(auth)/login');
     }
   };
 
   const handleExplore = () => {
+    // En modo demo, también loguear para explorar
+    if (isDemoMode()) {
+      useAuthStore.setState({
+        user: DEMO_AUTH_USER,
+        session: DEMO_SESSION,
+        profile: DEMO_PROFILE,
+        initialized: true,
+        loading: false,
+      });
+    }
     router.push('/(tabs)/live');
   };
 
