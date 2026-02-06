@@ -23,6 +23,12 @@ import debugLog from '../src/lib/debugToast';
 import { initSentry, captureError } from '../src/lib/sentry';
 import { initPostHog } from '../src/lib/posthog';
 
+// Import CSS animations for web
+if (Platform.OS === 'web') {
+  // @ts-ignore
+  import('../public/styles/welcome-animations.css');
+}
+
 // ═══════════════════════════════════════════════════════════
 // 🎯 MODOS:
 // - demo=true (default): Inversores, bypass auth, mockups

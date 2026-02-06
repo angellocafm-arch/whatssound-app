@@ -1,0 +1,214 @@
+/**
+ * WhatsSound — Welcome Page Animations
+ * Animaciones CSS para la landing page
+ */
+
+/* Glow trail animation - punto de luz recorriendo el borde */
+@keyframes glowMove {
+  0% {
+    left: 0;
+    top: 0;
+  }
+  25% {
+    left: 0;
+    top: calc(100% - 8px);
+  }
+  50% {
+    left: calc(100% - 8px);
+    top: calc(100% - 8px);
+  }
+  75% {
+    left: calc(100% - 8px);
+    top: 0;
+  }
+  100% {
+    left: 0;
+    top: 0;
+  }
+}
+
+/* Trail fade effect */
+@keyframes trailFade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* Plan card glow border */
+.plan-card-glow {
+  position: relative;
+  overflow: visible;
+}
+
+.plan-card-glow::before {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--glow-color, #1DB954);
+  border-radius: 50%;
+  animation: glowMove 3s linear infinite;
+  box-shadow: 
+    0 0 10px var(--glow-color, #1DB954),
+    0 0 20px var(--glow-color, #1DB954),
+    0 0 30px var(--glow-color, #1DB954),
+    0 0 40px var(--glow-color, #1DB954);
+  z-index: 10;
+}
+
+/* Trail particles */
+.plan-card-glow::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--glow-color, #1DB954);
+  border-radius: 50%;
+  animation: glowMove 3s linear infinite;
+  animation-delay: -0.15s;
+  opacity: 0.6;
+  filter: blur(2px);
+  box-shadow: 
+    0 0 8px var(--glow-color, #1DB954),
+    0 0 16px var(--glow-color, #1DB954);
+  z-index: 9;
+}
+
+/* Counter pulse */
+@keyframes counterPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.db-counter-value {
+  animation: counterPulse 2s ease-in-out infinite;
+}
+
+/* Live dot pulse */
+@keyframes livePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.live-dot {
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+/* Feature card hover */
+.feature-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(29, 185, 84, 0.15);
+}
+
+/* CTA button glow */
+.cta-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-primary::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: ctaShine 3s ease-in-out infinite;
+}
+
+@keyframes ctaShine {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  50%, 100% {
+    transform: translateX(100%) rotate(45deg);
+  }
+}
+
+/* Scroll indicator */
+@keyframes scrollBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.scroll-indicator {
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+/* Fade in on scroll */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-section {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Plan card highlighted */
+.plan-card-highlighted {
+  transform: scale(1.02);
+  z-index: 5;
+}
+
+.plan-card-highlighted .plan-card-glow::before {
+  box-shadow: 
+    0 0 15px var(--glow-color, #1DB954),
+    0 0 30px var(--glow-color, #1DB954),
+    0 0 45px var(--glow-color, #1DB954),
+    0 0 60px var(--glow-color, #1DB954);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .plan-card-glow::before,
+  .plan-card-glow::after {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

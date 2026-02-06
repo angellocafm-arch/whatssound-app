@@ -38,23 +38,20 @@ export function PlanCard({
   badge,
   color,
 }: PlanCardProps) {
+  const webClassName = Platform.OS === 'web' 
+    ? `plan-card-glow ${highlighted ? 'plan-card-highlighted' : ''}` 
+    : '';
+
   return (
-    <View style={[styles.container, highlighted && styles.highlighted]}>
-      {/* Animated border - CSS animation for web */}
-      <View style={[styles.borderGlow, { borderColor: color + '40' }]}>
-        {Platform.OS === 'web' && (
-          <div 
-            className="glow-trail" 
-            style={{ 
-              '--glow-color': color,
-              position: 'absolute',
-              inset: 0,
-              borderRadius: 20,
-              overflow: 'hidden',
-            } as any}
-          />
-        )}
-      </View>
+    <View 
+      style={[styles.container, highlighted && styles.highlighted]}
+      // @ts-ignore - web only
+      className={webClassName}
+      // @ts-ignore - CSS variable for web
+      {...(Platform.OS === 'web' ? { style: { '--glow-color': color } as any } : {})}
+    >
+      {/* Animated border */}
+      <View style={[styles.borderGlow, { borderColor: color + '40' }]} />
 
       <View style={[styles.content, highlighted && styles.contentHighlighted]}>
         {badge && (
