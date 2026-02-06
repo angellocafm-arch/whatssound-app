@@ -133,6 +133,10 @@ export default function ProfileScreen() {
 
         {/* Stats */}
         <View style={s.statsRow}>
+          <TouchableOpacity style={s.statBox} onPress={() => router.push(`/profile/followers?uid=${id}`)}>
+            <Text style={s.statValue}>--</Text>
+            <Text style={s.statLabel}>Seguidores</Text>
+          </TouchableOpacity>
           <View style={s.statBox}>
             <Text style={s.statValue}>{user.sessions}</Text>
             <Text style={s.statLabel}>Sesiones</Text>
@@ -140,10 +144,6 @@ export default function ProfileScreen() {
           <View style={s.statBox}>
             <Text style={s.statValue}>{user.votes}</Text>
             <Text style={s.statLabel}>Votos</Text>
-          </View>
-          <View style={s.statBox}>
-            <Text style={s.statValue}>{user.tips}</Text>
-            <Text style={s.statLabel}>Decibelios</Text>
           </View>
         </View>
 
