@@ -123,14 +123,30 @@ export default function WelcomePage() {
   const handleStart = () => {
     if (code) {
       router.push(`/join/${code}`);
+    } else if (isDemoMode()) {
+      useAuthStore.setState({
+        user: DEMO_AUTH_USER,
+        session: DEMO_SESSION,
+        profile: DEMO_PROFILE,
+        initialized: true,
+        loading: false,
+      });
+      router.replace('/(tabs)');
     } else {
-      // Siempre ir al flujo de login/registro
       router.push('/(auth)/login');
     }
   };
 
   const handleExplore = () => {
-    // Explorar sesiones en vivo sin cuenta (solo ver)
+    if (isDemoMode()) {
+      useAuthStore.setState({
+        user: DEMO_AUTH_USER,
+        session: DEMO_SESSION,
+        profile: DEMO_PROFILE,
+        initialized: true,
+        loading: false,
+      });
+    }
     router.push('/(tabs)/live');
   };
 
