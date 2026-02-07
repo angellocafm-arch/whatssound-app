@@ -104,9 +104,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
     
     if (isDemoMode()) {
-      // MODO INVERSORES: NO loguear automáticamente
-      // El usuario verá welcome primero, y al hacer click en "Empieza a ganar"
-      // se logueará el usuario demo (ver welcome.tsx)
+      // MODO DEMO/MOCKUP: No hacer login automático
+      // El usuario pasa por el flujo completo:
+      // Welcome → Login → Create-profile → Permissions → Chats
+      // Con teléfono ficticio se salta el SMS pero sigue el flujo
       useAuthStore.setState({
         user: null,
         session: null,

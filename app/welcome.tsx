@@ -21,39 +21,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../src/theme/colors';
 import { typography } from '../src/theme/typography';
 import { spacing, borderRadius } from '../src/theme/spacing';
-import { setDemoMode, isDemoMode, DEMO_USER } from '../src/lib/demo';
-import { useAuthStore } from '../src/stores/authStore';
+import { setDemoMode } from '../src/lib/demo';
 import { NeonCard } from '../src/components/welcome/NeonCard';
-
-// Demo user
-const DEMO_AUTH_USER = {
-  id: DEMO_USER.id,
-  email: 'demo@whatssound.app',
-  app_metadata: {},
-  user_metadata: { display_name: DEMO_USER.display_name },
-  aud: 'authenticated',
-  created_at: '2024-01-15T10:00:00Z',
-} as any;
-
-const DEMO_SESSION = {
-  access_token: 'demo-token',
-  refresh_token: 'demo-refresh',
-  expires_at: Math.floor(Date.now() / 1000) + 86400,
-  user: DEMO_AUTH_USER,
-} as any;
-
-const DEMO_PROFILE = {
-  id: DEMO_USER.id,
-  username: DEMO_USER.username,
-  display_name: DEMO_USER.display_name,
-  bio: 'Aquí por la música 💃',
-  avatar_url: null,
-  is_dj: false,
-  is_verified: false,
-  dj_name: null,
-  genres: ['Reggaetón', 'Pop'],
-  role: 'user',
-};
 
 // Features
 const FEATURES = [
@@ -123,30 +92,14 @@ export default function WelcomePage() {
   const handleStart = () => {
     if (code) {
       router.push(`/join/${code}`);
-    } else if (isDemoMode()) {
-      useAuthStore.setState({
-        user: DEMO_AUTH_USER,
-        session: DEMO_SESSION,
-        profile: DEMO_PROFILE,
-        initialized: true,
-        loading: false,
-      });
-      router.replace('/(tabs)');
     } else {
+      // Siempre ir al flujo de registro: login → create-profile → permissions → chats
       router.push('/(auth)/login');
     }
   };
 
   const handleExplore = () => {
-    if (isDemoMode()) {
-      useAuthStore.setState({
-        user: DEMO_AUTH_USER,
-        session: DEMO_SESSION,
-        profile: DEMO_PROFILE,
-        initialized: true,
-        loading: false,
-      });
-    }
+    // Ver sesiones sin registrarse (modo espectador)
     router.push('/(tabs)/live');
   };
 
