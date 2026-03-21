@@ -38,6 +38,8 @@ interface AuthState {
   // Actions
   initialize: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithOtp: (phone: string) => Promise<{ error: string | null }>;
+  verifyOtp: (phone: string, token: string) => Promise<{ error: string | null; isNewUser?: boolean }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   fetchProfile: () => Promise<void>;
@@ -122,6 +124,63 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     set({ loading: false });
     return { error: error?.message ?? null };
+  },
+
+  signInWithOtp: async (phone: string) => {
+    set({ loading: true });
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ phone });
+      set({ loading: false });
+      return { error: error?.message ?? null };
+    } catch (e: unknown) {
+      set({ loading: false });
+      return { error: 'Error al enviar el código SMS. Inténtalo de nuevo.' };
+    }
+  },
+
+  verifyOtp: async (phone: string, token: string) => {
+    set({ loading: true });
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone,
+        token,
+        type: 'sms',
+      });
+
+      if (error) {
+        set({ loading: false });
+        return { error: error.message };
+      }
+
+      if (data.user) {
+        set({ user: data.user, session: data.session });
+
+        // Check if user has an existing profile
+        const { data: profile, error: profileError } = await supabase
+          .from('ws_profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile && !profileError) {
+          const typedProfile = profile as Profile;
+          if (!typedProfile.role) {
+            typedProfile.role = typedProfile.is_admin ? 'admin' : typedProfile.is_dj ? 'dj' : 'user';
+          }
+          set({ profile: typedProfile, loading: false });
+          return { error: null, isNewUser: false };
+        }
+
+        set({ loading: false });
+        return { error: null, isNewUser: true };
+      }
+
+      set({ loading: false });
+      return { error: 'No se pudo verificar el código.' };
+    } catch (e: unknown) {
+      set({ loading: false });
+      return { error: 'Error de verificación. Inténtalo de nuevo.' };
+    }
   },
 
   signUp: async (email, password, displayName) => {

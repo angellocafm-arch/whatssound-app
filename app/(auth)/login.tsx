@@ -19,7 +19,6 @@ import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
 import { Button } from '../../src/components/ui/Button';
-import { supabase } from '../../src/lib/supabase';
 import { isDemoMode, isTestPhone, markNeedsProfile } from '../../src/lib/demo';
 import { useAuthStore } from '../../src/stores/authStore';
 import debugLog from '../../src/lib/debugToast';
@@ -82,14 +81,12 @@ export default function LoginScreen() {
       }
 
       // ══════════════════════════════════════════════════════════════
-      // PRODUCCIÓN REAL: Enviar OTP via Supabase (no implementado aún)
+      // PRODUCCIÓN REAL: Enviar OTP via Supabase Auth Store
       // ══════════════════════════════════════════════════════════════
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        phone: fullPhone,
-      });
+      const { error: otpError } = await useAuthStore.getState().signInWithOtp(fullPhone);
 
       if (otpError) {
-        setError(otpError.message);
+        setError(otpError);
         setLoading(false);
         return;
       }

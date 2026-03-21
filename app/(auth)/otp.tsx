@@ -19,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius } from '../../src/theme/spacing';
-import { supabase } from '../../src/lib/supabase';
 import { isTestMode, getOrCreateTestUser } from '../../src/lib/demo';
 import { useAuthStore } from '../../src/stores/authStore';
 
@@ -113,51 +112,30 @@ export default function OTPScreen() {
         return;
       }
 
-      // Producción: verificar con Supabase
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        phone,
-        token: code,
-        type: 'sms',
-      });
+      // Producción: verificar con Supabase via Auth Store
+      const { error: verifyError, isNewUser } = await useAuthStore.getState().verifyOtp(phone, code);
 
       if (verifyError) {
-        setError('Código incorrecto. Inténtalo de nuevo.');
+        setError(verifyError === 'Invalid OTP' || verifyError.includes('invalid')
+          ? 'Código incorrecto. Inténtalo de nuevo.'
+          : verifyError);
         setOtp(Array(OTP_LENGTH).fill(''));
         inputs.current[0]?.focus();
         setLoading(false);
         return;
       }
 
-      if (data.user) {
-        // Login real con Supabase - limpiar cualquier perfil demo
-        useAuthStore.setState({ profile: null });
-        
-        // Verificar si tiene perfil REAL en la base de datos
-        const { data: profile, error: profileError } = await supabase
-          .from('ws_profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
+      // Limpiar teléfono pendiente
+      if (Platform.OS === 'web') {
+        localStorage.removeItem('ws_pending_phone');
+      }
 
-        // Si hay perfil REAL Y no hay error, ir a tabs
-        if (profile && !profileError) {
-          setProfile({
-            id: profile.id,
-            display_name: profile.display_name,
-            username: profile.username,
-            avatar_url: profile.avatar_url,
-            is_dj: profile.is_dj,
-            bio: profile.bio || '',
-            is_verified: profile.is_verified || false,
-            dj_name: profile.dj_name || null,
-            genres: profile.genres || [],
-            role: profile.role || 'user',
-          });
-          router.replace('/(tabs)');
-        } else {
-          // Nuevo usuario, crear perfil
-          router.replace('/(auth)/create-profile');
-        }
+      if (isNewUser) {
+        // Nuevo usuario, crear perfil
+        router.replace('/(auth)/create-profile');
+      } else {
+        // Usuario existente con perfil, ir a tabs
+        router.replace('/(tabs)');
       }
     } catch (e: unknown) {
       setError('Error de verificación. Inténtalo de nuevo.');
@@ -173,7 +151,7 @@ export default function OTPScreen() {
     setError('');
 
     if (!isTestMode()) {
-      await supabase.auth.signInWithOtp({ phone });
+      await useAuthStore.getState().signInWithOtp(phone);
     }
   };
 
