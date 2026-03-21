@@ -49,7 +49,7 @@ export default function NewGroupScreen() {
     setCurrentUserId(myId || null);
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from('ws_profiles')
       .select('id, display_name, username, is_dj')
       .order('display_name');
 
@@ -88,17 +88,16 @@ export default function NewGroupScreen() {
     // All member IDs including creator
     const allMembers = [currentUserId, ...selectedUsers];
 
-    // Create session with genre=Group, store members in current_song as JSON
+    // Create session as a group chat using ws_sessions schema
     const { data, error } = await supabase
-      .from('sessions')
+      .from('ws_sessions')
       .insert({
         dj_id: currentUserId,
         name: groupName.trim(),
-        genre: 'Group',
-        status: 'live',
-        listener_count: allMembers.length,
-        max_listeners: 50,
-        current_song: JSON.stringify({ members: allMembers }),
+        description: JSON.stringify({ type: 'group', members: allMembers }),
+        is_active: true,
+        is_private: true,
+        chat_enabled: true,
       })
       .select()
       .single();
@@ -109,12 +108,12 @@ export default function NewGroupScreen() {
       return;
     }
 
-    // Send system message
-    await supabase.from('messages').insert({
+    // Send system message using ws_messages schema
+    await supabase.from('ws_messages').insert({
       session_id: data.id,
-      user_id: currentUserId,
+      author_id: currentUserId,
       content: `Grupo "${groupName.trim()}" creado`,
-      is_system: true,
+      type: 'system',
     });
 
     setCreating(false);

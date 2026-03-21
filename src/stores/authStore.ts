@@ -18,7 +18,14 @@ interface Profile {
   is_verified: boolean;
   dj_name: string | null;
   genres: string[];
-  role: string;
+  is_admin?: boolean;
+  phone?: string;
+  dj_bio?: string;
+  dj_avatar_url?: string | null;
+  music_service?: string;
+  music_service_id?: string;
+  /** @deprecated Derived from is_dj/is_admin — old 'profiles' table compat */
+  role?: string;
 }
 
 interface AuthState {
@@ -138,13 +145,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return;
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from('ws_profiles')
       .select('*')
       .eq('id', user.id)
       .single();
 
     if (!error && data) {
-      set({ profile: data as Profile });
+      // Derive legacy 'role' field from ws_profiles booleans
+      const profile = data as Profile;
+      if (!profile.role) {
+        profile.role = profile.is_admin ? 'admin' : profile.is_dj ? 'dj' : 'user';
+      }
+      set({ profile });
     }
   },
 
@@ -153,7 +165,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return { error: 'No user' };
 
     const { error } = await supabase
-      .from('profiles')
+      .from('ws_profiles')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', user.id);
 
