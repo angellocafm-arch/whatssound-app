@@ -24,9 +24,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { spacing, borderRadius } from '../../theme/spacing';
-import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { isDemoMode } from '../../lib/demo';
+import { isStripeConfigured, createTipPaymentIntent, mockPayment, formatAmount } from '../../lib/stripe';
 
 const TIP_AMOUNTS = [
   { value: 100, label: '€1', emoji: '☕' },
@@ -70,11 +70,21 @@ export function TipButton({ sessionId, djId, djName, onTipSent }: Props) {
     setSending(true);
 
     try {
-      if (isDemoMode()) {
-        // Simular envío
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setSuccess(true);
-        onTipSent?.(selectedAmount);
+      if (isDemoMode() || !isStripeConfigured()) {
+        // Demo mode o Stripe no configurado — simular pago
+        const success = await mockPayment({
+          amount: selectedAmount / 100, // mockPayment expects euros
+          djId,
+          sessionId,
+          senderId: user?.id || 'demo-user',
+        });
+
+        if (success) {
+          setSuccess(true);
+          onTipSent?.(selectedAmount);
+        } else {
+          throw new Error('Error al procesar el pago de prueba');
+        }
         
         setTimeout(() => {
           setModalVisible(false);
@@ -84,20 +94,19 @@ export function TipButton({ sessionId, djId, djName, onTipSent }: Props) {
         return;
       }
 
-      // Llamar a Edge Function para crear PaymentIntent
-      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
-        body: {
-          amount: selectedAmount,
-          sessionId,
-          djId,
-          tipperId: user?.id,
-        },
+      // Producción: Crear PaymentIntent via Edge Function
+      const paymentData = await createTipPaymentIntent({
+        amount: selectedAmount,
+        djId,
+        sessionId,
+        senderId: user?.id || '',
       });
 
-      if (error) throw error;
+      if (!paymentData) throw new Error('No se pudo crear el pago');
 
-      // En producción: Abrir sheet de pago con Stripe
-      // Por ahora: simular éxito
+      // TODO: Integrar @stripe/stripe-react-native para presentar payment sheet
+      // con paymentData.clientSecret
+      // Por ahora: registrar como exitoso (para testing con Stripe test keys)
       setSuccess(true);
       onTipSent?.(selectedAmount);
       
@@ -190,7 +199,9 @@ export function TipButton({ sessionId, djId, djName, onTipSent }: Props) {
                 <View style={styles.info}>
                   <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
                   <Text style={styles.infoText}>
-                    El DJ recibe el 87% · WhatsSound 13%
+                    {isDemoMode() || !isStripeConfigured()
+                      ? '🧪 Modo prueba · El DJ recibe el 87% · WhatsSound 13%'
+                      : 'El DJ recibe el 87% · WhatsSound 13%'}
                   </Text>
                 </View>
 
