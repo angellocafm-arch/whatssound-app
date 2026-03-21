@@ -1,12 +1,17 @@
 /**
  * WhatsSound — usePushNotifications Hook
  * Gestión de notificaciones push en el cliente
+ * 
+ * Al montar: obtiene token real de Expo (nativo) o null (web)
+ * y lo registra en ws_push_tokens via Supabase.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import { 
-  registerPushToken, 
+  getExpoPushToken,
+  registerPushToken,
+  deactivatePushToken,
   getPendingNotifications, 
   markNotificationRead,
   NotificationType 
@@ -28,6 +33,8 @@ interface UsePushNotificationsReturn {
   unreadCount: number;
   loading: boolean;
   error: string | null;
+  pushToken: string | null;
+  pushPermission: 'granted' | 'denied' | 'undetermined' | null;
   registerForPush: () => Promise<boolean>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -38,6 +45,9 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const [pushPermission, setPushPermission] = useState<'granted' | 'denied' | 'undetermined' | null>(null);
+  const registeredRef = useRef(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -65,36 +75,51 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
     }
   }, [userId]);
 
-  // Registrar token de push
+  // Registrar token de push (real)
   const registerForPush = useCallback(async (): Promise<boolean> => {
-    if (Platform.OS === 'web') {
-      // Web Push API (futuro)
-      // console.log('[Push] Web push not implemented yet');
-      return false;
-    }
+    if (!userId) return false;
 
     try {
-      // En producción: usar expo-notifications
-      // import * as Notifications from 'expo-notifications';
-      // const { status } = await Notifications.requestPermissionsAsync();
-      // const token = (await Notifications.getExpoPushTokenAsync()).data;
+      // Obtener token real de Expo (null en web)
+      const token = await getExpoPushToken();
       
-      // Mock para desarrollo
-      const mockToken = `ExponentPushToken[mock_${Date.now()}]`;
-      
-      if (userId) {
-        const success = await registerPushToken(userId, mockToken, {
-          platform: Platform.OS,
-          deviceId: 'mock-device',
-        });
-        return success;
+      if (!token) {
+        // Web o permisos denegados — no es un error, simplemente no aplica
+        if (Platform.OS === 'web') {
+          setPushPermission('undetermined');
+        } else {
+          setPushPermission('denied');
+        }
+        return false;
       }
-      return false;
+
+      setPushToken(token);
+      setPushPermission('granted');
+
+      // Registrar en BD
+      const success = await registerPushToken(userId, token, {
+        platform: Platform.OS,
+        registeredAt: new Date().toISOString(),
+      });
+
+      if (success) {
+        console.log('[Push] Token registered for user:', userId);
+      }
+
+      return success;
     } catch (e) {
       console.error('[Push] Registration error:', e);
+      setError('Error al registrar notificaciones push');
       return false;
     }
   }, [userId]);
+
+  // Auto-registrar al montar (una sola vez por userId)
+  useEffect(() => {
+    if (!userId || registeredRef.current) return;
+    registeredRef.current = true;
+    registerForPush();
+  }, [userId, registerForPush]);
 
   // Marcar como leída
   const markAsRead = useCallback(async (id: string) => {
@@ -119,7 +144,6 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
 
     loadNotifications();
 
-    // Realtime subscription
     const channel = supabase
       .channel(`notifications:${userId}`)
       .on(
@@ -141,6 +165,11 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
             read: false,
             createdAt: new Date(newNotif.created_at),
           }, ...prev]);
+
+          // Mostrar notificación local si la app está en primer plano (nativo)
+          if (Platform.OS !== 'web') {
+            showLocalNotification(newNotif.title, newNotif.body);
+          }
         }
       )
       .subscribe();
@@ -150,11 +179,16 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
     };
   }, [userId, loadNotifications]);
 
+  // Limpiar token al desmontar (no desactivar — podría ser unmount temporal)
+  // La desactivación real se hace en logout
+
   return {
     notifications,
     unreadCount,
     loading,
     error,
+    pushToken,
+    pushPermission,
     registerForPush,
     markAsRead,
     markAllAsRead,
@@ -168,4 +202,19 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
 export function useNotificationBadge(userId?: string): number {
   const { unreadCount } = usePushNotifications(userId);
   return unreadCount;
+}
+
+/**
+ * Mostrar notificación local cuando la app está en primer plano (nativo)
+ */
+async function showLocalNotification(title: string, body: string) {
+  try {
+    const Notifications = await import('expo-notifications');
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, sound: 'default' },
+      trigger: null, // Inmediata
+    });
+  } catch {
+    // expo-notifications no disponible — ignorar silenciosamente
+  }
 }
